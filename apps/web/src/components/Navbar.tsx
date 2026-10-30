@@ -1,95 +1,81 @@
-import React from 'react';
-import { Leaf, Sun, Moon, ArrowRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { Volume2, VolumeX } from 'lucide-react';
+import { sound } from '../services/soundEngine';
 
 interface NavbarProps {
   activeSection: string;
-  onNavigate: (sectionId: string) => void;
-  theme: 'light' | 'dark';
-  onToggleTheme: () => void;
+  onNavigate: (id: string) => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({
-  activeSection,
-  onNavigate,
-  theme,
-  onToggleTheme,
-}) => {
-  const navItems = [
-    { id: 'section-beranda', label: 'Beranda' },
-    { id: 'section-analisis', label: 'Analisis' },
-    { id: 'section-hasil', label: 'Hasil' },
-    { id: 'section-riwayat', label: 'Riwayat' },
-    { id: 'section-model', label: 'Model & Data' },
-  ];
+export const Navbar: React.FC<NavbarProps> = ({ onNavigate }) => {
+  const [soundActive, setSoundActive] = useState(() => sound.isEnabled());
+
+  const handleSoundToggle = () => {
+    const next = sound.toggle();
+    setSoundActive(next);
+  };
+
+  const handleNav = (id: string) => {
+    sound.play('swoosh');
+    onNavigate(id);
+  };
 
   return (
-    <>
-      {/* Decorative Scroll Progress Bar (aria-hidden per Modern Web Guidance) */}
-      <div id="scroll-progress" aria-hidden="true" />
+    <header className="fixed top-0 left-0 right-0 z-50 bg-[#FFC737] border-b-2 border-black transition-colors">
+      <div className="max-w-7xl mx-auto px-6 sm:px-10 h-18 flex items-center justify-between">
 
-      <header className="fixed top-0 left-0 right-0 z-40 px-4 sm:px-8 py-3 transition-all duration-300">
-        <div className="max-w-6xl mx-auto surface-glass rounded-full px-5 py-2.5 flex items-center justify-between shadow-lg">
-          {/* Brand Logo */}
+        {/* Left Navigation Links */}
+        <div className="flex items-center gap-6 sm:gap-8 font-passata text-lg uppercase tracking-tight">
           <button
-            onClick={() => onNavigate('section-beranda')}
-            className="flex items-center gap-2 text-base font-bold tracking-tight text-[var(--text-main)] group cursor-pointer"
+            onClick={() => handleNav('section-cara-kerja')}
+            onMouseEnter={() => sound.play('hover')}
+            className="text-black hover:opacity-70 transition-opacity cursor-pointer"
           >
-            <span className="w-8 h-8 rounded-full bg-[var(--leaf-primary)] text-white flex items-center justify-center transition-transform group-hover:scale-105 shadow-sm">
-              <Leaf className="w-4 h-4" />
+            Cara Kerja
+          </button>
+        </div>
+
+        {/* Center Iconic Logo: FRESHSIGHT with Japanese Subtitle (Matching Planet Oño) */}
+        <button
+          onClick={() => handleNav('section-hero')}
+          onMouseEnter={() => sound.play('hover')}
+          className="flex flex-col items-center group cursor-pointer"
+        >
+          <div className="flex items-center gap-1 font-passata text-2xl sm:text-3xl text-black tracking-tighter uppercase font-bold leading-none">
+            <span>FRESH</span>
+            <span className="relative inline-flex items-center justify-center">
+              SIGHT
+              <span className="absolute -top-1.5 right-1.5 text-xs text-white drop-shadow-[0_1px_1px_#000]">✦</span>
             </span>
-            <span className="font-editorial text-lg tracking-tight">
-              Fresh<span className="text-[var(--leaf-primary)] font-bold">Sight</span>
-            </span>
+          </div>
+          <span className="font-mono-tech text-[10px] text-black font-bold tracking-widest -mt-0.5">
+            新鮮ちゃん
+          </span>
+        </button>
+
+        {/* Right Navigation & Sound Toggle */}
+        <div className="flex items-center gap-4 sm:gap-6">
+          <button
+            onClick={() => handleNav('section-riwayat')}
+            onMouseEnter={() => sound.play('hover')}
+            className="hidden sm:inline font-passata text-lg text-black hover:opacity-70 transition-opacity uppercase cursor-pointer"
+          >
+            Riwayat
           </button>
 
-          {/* Navigation Items */}
-          <nav
-            className="relative hidden md:flex items-center gap-1 p-1 rounded-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-xs font-semibold"
-            aria-label="Menu Utama"
+          {/* Planet Oño Exact Sound On Oval Pill Button */}
+          <button
+            onClick={handleSoundToggle}
+            onMouseEnter={() => sound.play('hover')}
+            className="flex items-center gap-2 px-3.5 py-1.5 rounded-full border-2 border-black bg-white/40 hover:bg-white text-black font-passata text-sm uppercase transition-all shadow-[2px_2px_0_#000000] cursor-pointer"
+            aria-label="Toggle Sound"
           >
-            {navItems.map((item) => {
-              const isActive = activeSection === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => onNavigate(item.id)}
-                  className={`px-4 py-1.5 rounded-full transition-all cursor-pointer ${
-                    isActive
-                      ? 'bg-[var(--text-main)] text-[var(--bg-primary)] shadow-xs'
-                      : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
-                  }`}
-                >
-                  {item.label}
-                </button>
-              );
-            })}
-          </nav>
-
-          {/* Right Action Controls */}
-          <div className="flex items-center gap-2.5">
-            <button
-              onClick={onToggleTheme}
-              className="w-9 h-9 rounded-full flex items-center justify-center border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-main)] hover:border-[var(--border-strong)] transition-all cursor-pointer shadow-sm"
-              aria-label="Ganti Tema Gelap / Terang"
-            >
-              {theme === 'dark' ? (
-                <Sun className="w-4 h-4 text-[#FBBF24]" />
-              ) : (
-                <Moon className="w-4 h-4 text-[var(--text-muted)]" />
-              )}
-            </button>
-
-            <button
-              onClick={() => onNavigate('section-analisis')}
-              className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold bg-[var(--text-main)] text-[var(--bg-primary)] hover:opacity-90 transition-all cursor-pointer shadow-sm"
-            >
-              <span>Unggah Foto</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
+            <span>{soundActive ? 'Sound on' : 'Sound off'}</span>
+            {soundActive ? <Volume2 size={16} strokeWidth={2.5} /> : <VolumeX size={16} strokeWidth={2.5} />}
+          </button>
         </div>
-      </header>
-    </>
+
+      </div>
+    </header>
   );
 };
-

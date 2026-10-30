@@ -1,4 +1,4 @@
-import { AnalysisResult, FruitType } from '../types';
+import { AnalysisResult, FruitType, DemoPreset, getVerdict } from '../types';
 
 export const FRUIT_NAMES: Record<FruitType, string> = {
   apple: 'Apel',
@@ -414,6 +414,7 @@ export function analyzeImageLocally(imageElement: HTMLImageElement): Omit<Analys
     fruit: fruitType,
     rot: isRotten,
     conf: confidence,
+    verdict: getVerdict(confidence, isRotten),
     n: spotCount,
     rasio: Math.round(defectRatio * 100),
     loc: defectLocation,
@@ -426,6 +427,226 @@ export function analyzeImageLocally(imageElement: HTMLImageElement): Omit<Analys
     fb: isFallbackMask,
     ms: Math.round(performance.now() - startTime),
     model: 'analisis-warna (browser)',
+  };
+}
+
+// Helper to create procedural photo render for presets so history always has high-res images
+export function createSampleFruitDataUrl(fruit: FruitType, isRotten: 0 | 1): string {
+  const canvas = document.createElement('canvas');
+  canvas.width = 400;
+  canvas.height = 400;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return '';
+
+  // Clean studio background
+  ctx.fillStyle = '#f5f5f7';
+  ctx.fillRect(0, 0, 400, 400);
+
+  // Soft studio surface drop shadow
+  ctx.save();
+  ctx.beginPath();
+  ctx.ellipse(200, 320, 110, 24, 0, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
+  ctx.filter = 'blur(8px)';
+  ctx.fill();
+  ctx.restore();
+
+  if (fruit === 'apple') {
+    // Apple body
+    const grad = ctx.createRadialGradient(170, 170, 20, 200, 200, 140);
+    if (isRotten) {
+      grad.addColorStop(0, '#a33c2a');
+      grad.addColorStop(0.4, '#6b2014');
+      grad.addColorStop(0.8, '#42160d');
+      grad.addColorStop(1, '#2b0c07');
+    } else {
+      grad.addColorStop(0, '#f87171');
+      grad.addColorStop(0.3, '#dc2626');
+      grad.addColorStop(0.7, '#991b1b');
+      grad.addColorStop(1, '#450a0a');
+    }
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(170, 210, 95, 0, Math.PI * 2);
+    ctx.arc(230, 210, 95, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Stem
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = '#451a03';
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(200, 130);
+    ctx.quadraticCurveTo(205, 95, 225, 80);
+    ctx.stroke();
+
+    // Leaf
+    ctx.fillStyle = isRotten ? '#57534e' : '#15803d';
+    ctx.beginPath();
+    ctx.ellipse(220, 95, 18, 9, Math.PI / 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Defect spots for rotten
+    if (isRotten) {
+      ctx.fillStyle = 'rgba(30, 10, 5, 0.75)';
+      ctx.beginPath();
+      ctx.arc(180, 230, 32, 0, Math.PI * 2);
+      ctx.arc(235, 195, 24, 0, Math.PI * 2);
+      ctx.arc(150, 180, 18, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Mold speckles
+      ctx.fillStyle = 'rgba(230, 240, 220, 0.45)';
+      ctx.beginPath();
+      ctx.arc(175, 225, 6, 0, Math.PI * 2);
+      ctx.arc(188, 235, 4, 0, Math.PI * 2);
+      ctx.arc(232, 198, 5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else if (fruit === 'banana') {
+    // Banana body
+    ctx.save();
+    ctx.translate(200, 200);
+    ctx.rotate(-Math.PI / 6);
+    ctx.lineWidth = 42;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = isRotten ? '#854d0e' : '#eab308';
+    ctx.beginPath();
+    ctx.arc(0, 0, 120, Math.PI * 0.75, Math.PI * 1.55);
+    ctx.stroke();
+
+    // Inner highlight
+    ctx.lineWidth = 26;
+    ctx.strokeStyle = isRotten ? '#713f12' : '#fef08a';
+    ctx.beginPath();
+    ctx.arc(0, 0, 120, Math.PI * 0.82, Math.PI * 1.48);
+    ctx.stroke();
+
+    if (isRotten) {
+      // Dark necrotic melanin spots
+      ctx.fillStyle = '#291405';
+      const spots = [[-85, 80, 12], [-65, 40, 14], [-30, -10, 18], [10, -50, 15], [50, -85, 11]];
+      spots.forEach(([x, y, r]) => {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+    ctx.restore();
+  } else {
+    // Orange body
+    const grad = ctx.createRadialGradient(175, 175, 20, 200, 200, 120);
+    if (isRotten) {
+      grad.addColorStop(0, '#c2410c');
+      grad.addColorStop(0.5, '#7c2d12');
+      grad.addColorStop(1, '#431407');
+    } else {
+      grad.addColorStop(0, '#fb923c');
+      grad.addColorStop(0.4, '#ea580c');
+      grad.addColorStop(0.8, '#c2410c');
+      grad.addColorStop(1, '#7c2d12');
+    }
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(200, 200, 105, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Stem navel
+    ctx.fillStyle = '#15803d';
+    ctx.beginPath();
+    ctx.arc(200, 100, 8, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (isRotten) {
+      // Mold patch
+      ctx.fillStyle = 'rgba(74, 110, 95, 0.85)';
+      ctx.beginPath();
+      ctx.arc(170, 210, 42, 0, Math.PI * 2);
+      ctx.fill();
+
+      // White mold mycelium halo
+      ctx.strokeStyle = 'rgba(235, 245, 235, 0.6)';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.arc(170, 210, 44, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+
+  return canvas.toDataURL('image/jpeg', 0.85);
+}
+
+// ── runAnalysis: top-level helper used by AnalysisStudio ─────────────────
+export async function runAnalysis(
+  file: File | null,
+  src: 'browser' | 'api' | 'contoh',
+  preset?: DemoPreset
+): Promise<AnalysisResult> {
+  const now = new Date().toISOString();
+  const id = Date.now();
+
+  if (src === 'contoh' && preset) {
+    const [fruit, rot, conf, rasio, n, loc, jw, tk] = preset;
+    const p = calculateClassProbs(fruit, rot, conf);
+    const photoDataUrl = createSampleFruitDataUrl(fruit, rot);
+
+    return {
+      id,
+      fruit,
+      rot,
+      conf,
+      verdict: getVerdict(conf, rot),
+      n,
+      rasio,
+      loc,
+      jw,
+      tk,
+      p,
+      src: 'contoh',
+      model: 'MobileNetV2 (Edge)',
+      date: now,
+      ms: Math.round(45 + Math.random() * 25),
+      img: photoDataUrl,
+      thumb: photoDataUrl,
+    };
+  }
+
+  if (!file) throw new Error('No file provided');
+
+  // Convert File to compressed persistent Base64 DataURL (so it never expires!)
+  const photoDataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 640;
+        const scale = Math.min(1, maxDim / Math.max(img.naturalWidth, img.naturalHeight));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.naturalWidth * scale);
+        c.height = Math.round(img.naturalHeight * scale);
+        const ctx = c.getContext('2d');
+        if (!ctx) return resolve(e.target?.result as string);
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        resolve(c.toDataURL('image/jpeg', 0.85));
+      };
+      img.onerror = () => resolve(e.target?.result as string);
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+  const imgElem = await loadImageElement(photoDataUrl);
+  const partial = analyzeImageLocally(imgElem);
+
+  return {
+    id,
+    ...partial,
+    verdict: getVerdict(partial.conf, partial.rot),
+    src: 'browser',
+    date: now,
+    img: photoDataUrl,
+    thumb: photoDataUrl,
   };
 }
 
@@ -456,6 +677,7 @@ export async function fetchPredictionFromApi(
     fruit: FRUIT_KEYS[labelIndex >> 1],
     rot: (labelIndex & 1) as 0 | 1,
     conf: json.confidence,
+    verdict: getVerdict(json.confidence, (labelIndex & 1) as 0 | 1),
     n: ft.jumlah_bercak || 0,
     rasio: Math.round(defectRatio <= 1 ? defectRatio * 100 : defectRatio),
     loc: ft.lokasi_bercak || '–',

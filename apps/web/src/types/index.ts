@@ -48,12 +48,47 @@ export type DemoPreset = [
 
 export const VERDICT_STYLE: Record<
   Verdict,
-  { bg: string; icon: string; label: string; stripe: boolean; color: string }
+  {
+    bg: string;
+    border: string;
+    text: string;
+    badgeBg: string;
+    label: string;
+    icon: string;
+  }
 > = {
-  segar: { bg: '#00c68e', icon: 'Check', label: 'SEGAR', stripe: false, color: '#111' },
-  busuk: { bg: '#ff4d4d', icon: 'X', label: 'BUSUK', stripe: true, color: '#111' },
-  ragu: { bg: '#ffd000', icon: 'HelpCircle', label: 'RAGU', stripe: false, color: '#111' },
-  tidak_terdeteksi: { bg: '#eeeeee', icon: 'Ban', label: 'TIDAK TERDETEKSI', stripe: true, color: '#111' },
+  segar: {
+    bg: 'rgba(0, 212, 164, 0.08)',
+    border: 'rgba(0, 212, 164, 0.25)',
+    text: '#047857',
+    badgeBg: '#00D4A4',
+    label: 'SEGAR',
+    icon: 'Check',
+  },
+  busuk: {
+    bg: 'rgba(239, 68, 68, 0.08)',
+    border: 'rgba(239, 68, 68, 0.25)',
+    text: '#B91C1C',
+    badgeBg: '#EF4444',
+    label: 'BUSUK',
+    icon: 'X',
+  },
+  ragu: {
+    bg: 'rgba(245, 158, 11, 0.08)',
+    border: 'rgba(245, 158, 11, 0.25)',
+    text: '#B45309',
+    badgeBg: '#F59E0B',
+    label: 'RAGU',
+    icon: 'HelpCircle',
+  },
+  tidak_terdeteksi: {
+    bg: 'rgba(100, 116, 139, 0.08)',
+    border: 'rgba(100, 116, 139, 0.25)',
+    text: '#475569',
+    badgeBg: '#64748B',
+    label: 'TIDAK TERDETEKSI',
+    icon: 'Ban',
+  },
 };
 
 export function getVerdict(conf: number, rot: 0 | 1): Verdict {
