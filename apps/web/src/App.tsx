@@ -40,14 +40,18 @@ function getInitialHistory(): AnalysisResult[] {
     const saved = localStorage.getItem('freshsight_history');
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // Upgrade legacy canvas base64 to realistic photographic images
+        return parsed.map((item: AnalysisResult) => {
+          if (!item.img || item.img.startsWith('data:image')) {
+            const freshUrl = createSampleFruitDataUrl(item.fruit, item.rot);
+            return { ...item, img: freshUrl, thumb: freshUrl };
+          }
+          return item;
+        });
+      }
     }
   } catch {}
-
-  const appleSegarUrl = createSampleFruitDataUrl('apple', 0);
-  const bananaBusukUrl = createSampleFruitDataUrl('banana', 1);
-  const orangeSegarUrl = createSampleFruitDataUrl('orange', 0);
-  const appleBusukUrl = createSampleFruitDataUrl('apple', 1);
 
   const initialItems: AnalysisResult[] = [
     {
@@ -65,47 +69,11 @@ function getInitialHistory(): AnalysisResult[] {
       src: 'contoh',
       model: 'MobileNetV2 (Edge)',
       date: new Date(Date.now() - 3600000 * 2).toISOString(),
-      img: appleSegarUrl,
-      thumb: appleSegarUrl,
+      img: '/fruit/apple_fresh.jpg',
+      thumb: '/fruit/apple_fresh.jpg',
     },
     {
       id: 102,
-      fruit: 'banana',
-      rot: 1,
-      conf: 0.974,
-      verdict: 'busuk',
-      n: 4,
-      rasio: 32,
-      loc: 'tengah',
-      jw: 42.5,
-      tk: 0.18,
-      p: [0, 0, 0.026, 0.974, 0, 0],
-      src: 'contoh',
-      model: 'MobileNetV2 (Edge)',
-      date: new Date(Date.now() - 3600000 * 5).toISOString(),
-      img: bananaBusukUrl,
-      thumb: bananaBusukUrl,
-    },
-    {
-      id: 103,
-      fruit: 'orange',
-      rot: 0,
-      conf: 0.985,
-      verdict: 'segar',
-      n: 0,
-      rasio: 1,
-      loc: '–',
-      jw: 8.9,
-      tk: 0.10,
-      p: [0, 0, 0, 0, 0.985, 0.015],
-      src: 'contoh',
-      model: 'MobileNetV2 (Edge)',
-      date: new Date(Date.now() - 3600000 * 12).toISOString(),
-      img: orangeSegarUrl,
-      thumb: orangeSegarUrl,
-    },
-    {
-      id: 104,
       fruit: 'apple',
       rot: 1,
       conf: 0.946,
@@ -118,9 +86,81 @@ function getInitialHistory(): AnalysisResult[] {
       p: [0.054, 0.946, 0, 0, 0, 0],
       src: 'contoh',
       model: 'MobileNetV2 (Edge)',
-      date: new Date(Date.now() - 3600000 * 24).toISOString(),
-      img: appleBusukUrl,
-      thumb: appleBusukUrl,
+      date: new Date(Date.now() - 3600000 * 5).toISOString(),
+      img: '/fruit/apple_rotten.jpg',
+      thumb: '/fruit/apple_rotten.jpg',
+    },
+    {
+      id: 103,
+      fruit: 'banana',
+      rot: 0,
+      conf: 0.988,
+      verdict: 'segar',
+      n: 0,
+      rasio: 2,
+      loc: '–',
+      jw: 9.8,
+      tk: 0.12,
+      p: [0, 0, 0.988, 0.012, 0, 0],
+      src: 'contoh',
+      model: 'MobileNetV2 (Edge)',
+      date: new Date(Date.now() - 3600000 * 8).toISOString(),
+      img: '/fruit/banana_fresh.jpg',
+      thumb: '/fruit/banana_fresh.jpg',
+    },
+    {
+      id: 104,
+      fruit: 'banana',
+      rot: 1,
+      conf: 0.974,
+      verdict: 'busuk',
+      n: 4,
+      rasio: 32,
+      loc: 'tengah',
+      jw: 42.5,
+      tk: 0.18,
+      p: [0, 0, 0.026, 0.974, 0, 0],
+      src: 'contoh',
+      model: 'MobileNetV2 (Edge)',
+      date: new Date(Date.now() - 3600000 * 14).toISOString(),
+      img: '/fruit/banana_rotten.jpg',
+      thumb: '/fruit/banana_rotten.jpg',
+    },
+    {
+      id: 105,
+      fruit: 'orange',
+      rot: 0,
+      conf: 0.985,
+      verdict: 'segar',
+      n: 0,
+      rasio: 1,
+      loc: '–',
+      jw: 8.9,
+      tk: 0.10,
+      p: [0, 0, 0, 0, 0.985, 0.015],
+      src: 'contoh',
+      model: 'MobileNetV2 (Edge)',
+      date: new Date(Date.now() - 3600000 * 20).toISOString(),
+      img: '/fruit/orange_fresh.jpg',
+      thumb: '/fruit/orange_fresh.jpg',
+    },
+    {
+      id: 106,
+      fruit: 'orange',
+      rot: 1,
+      conf: 0.880,
+      verdict: 'busuk',
+      n: 2,
+      rasio: 11,
+      loc: 'bawah kiri',
+      jw: 33.4,
+      tk: 0.22,
+      p: [0, 0, 0, 0, 0.120, 0.880],
+      src: 'contoh',
+      model: 'MobileNetV2 (Edge)',
+      date: new Date(Date.now() - 3600000 * 28).toISOString(),
+      img: '/fruit/orange_rotten.jpg',
+      thumb: '/fruit/orange_rotten.jpg',
     },
   ];
 

@@ -200,6 +200,34 @@ body {
   box-shadow: 1px 1px 0 #000000;
 }
 
+/* ── Infinite Smooth Running Reel / Marquee ── */
+@keyframes fs-marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.marquee-container {
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+  mask-image: linear-gradient(to right, transparent, black 3%, black 97%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 3%, black 97%, transparent);
+}
+
+.marquee-track {
+  display: flex;
+  gap: 1.25rem;
+  width: max-content;
+  animation: fs-marquee 32s linear infinite;
+  will-change: transform;
+}
+
+.marquee-track:hover,
+.marquee-track:active,
+.marquee-track:focus-within {
+  animation-play-state: paused;
+}
+
 /* ── Circular Celestial / Radar Charts (Image 4) ── */
 .circular-star-chart {
   position: relative;

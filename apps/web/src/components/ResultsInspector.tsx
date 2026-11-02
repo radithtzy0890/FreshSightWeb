@@ -82,9 +82,13 @@ export const ResultsInspector: React.FC<ResultsInspectorProps> = ({
                   </p>
                 </div>
               ) : (
-                /* Standby Illustration Stage */
+                /* Standby Illustration Stage with Real Fruit Photos */
                 <div className="text-center space-y-2">
-                  <div className="text-7xl mb-1">🍎 🍌 🍊</div>
+                  <div className="flex items-center justify-center gap-3 mb-2">
+                    <img src="/fruit/apple_fresh.jpg" alt="Apel" className="w-14 h-14 rounded-2xl border-2 border-black object-contain bg-white shadow-[2px_2px_0_#000000]" />
+                    <img src="/fruit/banana_fresh.jpg" alt="Pisang" className="w-14 h-14 rounded-2xl border-2 border-black object-contain bg-white shadow-[2px_2px_0_#000000]" />
+                    <img src="/fruit/orange_fresh.jpg" alt="Jeruk" className="w-14 h-14 rounded-2xl border-2 border-black object-contain bg-white shadow-[2px_2px_0_#000000]" />
+                  </div>
                   <h3 className="font-passata text-2xl text-black uppercase">
                     KOTAK OBSERVASI SPESIMEN
                   </h3>
@@ -145,13 +149,13 @@ export const ResultsInspector: React.FC<ResultsInspectorProps> = ({
 
         <div className="max-w-4xl mx-auto px-6 relative z-10 space-y-4">
           <h2 className="font-passata text-4xl sm:text-6xl lg:text-7xl text-shadow-3d-white uppercase font-bold leading-tight tracking-tight">
-            PILIH YANG SEGAR,<br />
-            KONSUMSI TERBAIK<br />
-            UNTUK TUBUHMU
+            PILIH BUAH TERBAIK<br />
+            UNTUK KELUARGA<br />
+            ATAU BISNISMU
           </h2>
 
           <p className="font-passata text-xl text-white/90 tracking-wide mt-2">
-            Kualitas buah teruji tanpa kompromi 🍏
+            Kualitas nutrisi buah tanpa kompromi 🍏
           </p>
         </div>
       </section>

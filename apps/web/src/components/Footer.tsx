@@ -27,10 +27,10 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
       {/* Clean Punchy Colophon Statement (Matching Image 5) */}
       <div className="space-y-1.5 max-w-xl mx-auto px-6">
         <p className="font-passata text-xl sm:text-2xl uppercase tracking-tight text-white leading-snug">
-          BUAH BERKATA JUJUR. SENSOR MELIHAT HINGGA KE JARINGAN.
+          KAMI MENOLAK TEBAK-TEBAKAN. ANALISIS MUTU BUAH BERKATA JUJUR.
         </p>
         <p className="font-passata text-lg sm:text-xl uppercase tracking-tight text-white/90">
-          PLATFORM INTELIJEN MUTU BUAH BIO-OPTIK
+          TEKNOLOGI BIO-OPTIK DETEKSI KESEGARAN BUAH DIGITAL
         </p>
         <p className="font-passata text-lg sm:text-xl uppercase tracking-tight text-[#8DF947]">
           OLEH FRESHSIGHT 🍏
