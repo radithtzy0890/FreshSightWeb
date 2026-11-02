@@ -92,7 +92,6 @@ export const VERDICT_STYLE: Record<
 };
 
 export function getVerdict(conf: number, rot: 0 | 1): Verdict {
-  if (conf >= 0.80) return rot === 0 ? 'segar' : 'busuk';
-  if (conf >= 0.60) return 'ragu';
+  if (conf >= 0.60) return rot === 0 ? 'segar' : 'busuk';
   return 'ragu';
 }

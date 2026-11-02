@@ -92,10 +92,72 @@ body {
   padding: 16px 20px;
   text-align: center;
   transform: rotate(-6deg);
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+  animation: ono-badge-pulse 4.2s ease-in-out infinite;
 }
 .sticker-blast:hover {
-  transform: rotate(-3deg) scale(1.04);
+  transform: rotate(-3deg) scale(1.06);
+  box-shadow: 6px 6px 0 #000000;
+  animation-play-state: paused;
+}
+
+/* ── Planet Oño Authentic Floating & Twinkle Animations ── */
+@keyframes ono-float {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(0.8deg);
+  }
+}
+
+@keyframes ono-badge-pulse {
+  0%, 100% {
+    transform: rotate(-6deg) scale(1);
+  }
+  50% {
+    transform: rotate(-4.5deg) scale(1.025);
+  }
+}
+
+@keyframes ono-twinkle {
+  0%, 100% {
+    transform: scale(0.9) rotate(0deg);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.22) rotate(18deg);
+    opacity: 1;
+  }
+}
+
+@keyframes fruit-bob {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+  }
+  50% {
+    transform: translateY(-6px) scale(1.03);
+  }
+}
+
+.animate-ono-float {
+  animation: ono-float 4.2s ease-in-out infinite;
+}
+
+.animate-ono-twinkle {
+  animation: ono-twinkle 2.4s ease-in-out infinite;
+}
+
+.animate-ono-twinkle-delay-1 {
+  animation: ono-twinkle 2.8s ease-in-out 0.9s infinite;
+}
+
+.animate-ono-twinkle-delay-2 {
+  animation: ono-twinkle 3.2s ease-in-out 1.7s infinite;
+}
+
+.animate-fruit-bob {
+  animation: fruit-bob 3.2s ease-in-out infinite;
 }
 
 /* ── Tactile Slider Buttons (Image 1 Bottom Right) ── */

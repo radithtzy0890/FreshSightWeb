@@ -47,11 +47,11 @@ export const ResultsInspector: React.FC<ResultsInspectorProps> = ({
               {result ? (
                 /* Diagnosed Result Display */
                 <div className="relative w-full h-full flex flex-col items-center justify-center text-center">
-                  <div className="relative w-44 h-44 rounded-2xl overflow-hidden border-3 border-black shadow-[4px_4px_0_#000000] mb-3">
+                  <div className="relative w-64 sm:w-72 h-44 sm:h-48 rounded-2xl overflow-hidden border-3 border-black shadow-[4px_4px_0_#000000] mb-3 bg-[#EAE3D2] flex items-center justify-center p-2">
                     <img
                       src={viewHeatmap && result.cam ? result.cam : result.img || ''}
                       alt="Diagnosed specimen"
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain rounded-xl drop-shadow-md"
                     />
                     <button
                       onClick={() => {

@@ -271,10 +271,11 @@ export const Hero: React.FC<HeroProps> = ({
   return (
     <section id="section-hero" className="pt-28 pb-16 min-h-[92vh] bg-[#FFC737] flex items-center justify-center relative overflow-hidden">
 
-      {/* Floating Sparkles (Planet Oño Aesthetic) */}
-      <div className="absolute top-36 left-1/4 text-2xl select-none pointer-events-none animate-pulse">✦</div>
-      <div className="absolute bottom-24 left-16 text-3xl select-none pointer-events-none">✦</div>
-      <div className="absolute top-44 right-1/3 text-2xl select-none pointer-events-none">✦</div>
+      {/* Floating Sparkles (Planet Oño Authentic Interactive Twinkle) */}
+      <div className="absolute top-36 left-1/4 text-2xl select-none pointer-events-none animate-ono-twinkle text-white drop-shadow-[0_2px_2px_#000]">✦</div>
+      <div className="absolute bottom-24 left-16 text-3xl select-none pointer-events-none animate-ono-twinkle-delay-1 text-black">✦</div>
+      <div className="absolute top-44 right-1/3 text-2xl select-none pointer-events-none animate-ono-twinkle-delay-2 text-white drop-shadow-[0_2px_2px_#000]">✦</div>
+      <div className="absolute top-28 right-16 text-xl select-none pointer-events-none animate-ono-twinkle text-black">✦</div>
 
       <div className="max-w-7xl mx-auto px-6 sm:px-10 w-full relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
@@ -377,7 +378,7 @@ export const Hero: React.FC<HeroProps> = ({
           {/* Center Column: Upright Oval Capsule & Interactive 3D Specimen Pedestal */}
           <div className="lg:col-span-4 flex flex-col items-center justify-center order-1 lg:order-2">
             <div
-              className="relative w-[280px] sm:w-[320px] h-[380px] sm:h-[420px] rounded-[160px] border-3 border-black shadow-[8px_8px_0_#000000] flex flex-col items-center justify-center p-6 text-center cursor-pointer overflow-hidden transition-all group"
+              className="relative w-[280px] sm:w-[320px] h-[380px] sm:h-[420px] rounded-[160px] border-3 border-black shadow-[8px_8px_0_#000000] flex flex-col items-center justify-center p-6 text-center cursor-pointer overflow-hidden transition-all group animate-ono-float"
               style={{ backgroundColor: specimen.color }}
               onClick={handleTriggerAnalysis}
             >
@@ -445,22 +446,26 @@ export const Hero: React.FC<HeroProps> = ({
                   </button>
                 </div>
               ) : uploadedPhoto ? (
-                <div className="relative w-full h-full rounded-[130px] overflow-hidden border-2 border-black">
-                  <img src={uploadedPhoto} alt="Spesimen terunggah" className="w-full h-full object-cover" />
+                <div className="relative w-full h-full rounded-[130px] overflow-hidden border-2 border-black bg-[#ECE7DC] flex items-center justify-center p-3">
+                  <img
+                    src={uploadedPhoto}
+                    alt="Spesimen terunggah"
+                    className="w-full h-full object-contain drop-shadow-md rounded-2xl"
+                  />
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setUploadedPhoto(null);
                     }}
-                    className="absolute top-4 right-4 p-1.5 rounded-full bg-black/80 text-white border border-white hover:bg-black cursor-pointer"
+                    className="absolute top-4 right-4 p-1.5 rounded-full bg-black/80 text-white border border-white hover:bg-black cursor-pointer shadow-md"
                   >
                     <X size={14} />
                   </button>
                 </div>
               ) : (
-                /* The Floating Specimen Plate (Photorealistic Fruit Display) */
-                <div className="relative z-10 flex flex-col items-center justify-center">
-                  <div className="w-36 h-36 sm:w-40 sm:h-40 rounded-full overflow-hidden border-3 border-black shadow-[4px_4px_0_#000000] bg-white p-2.5 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+                /* The Floating Specimen Plate (Photorealistic Fruit Display with Planet Oño Bob) */
+                <div className="relative z-10 flex flex-col items-center justify-center animate-fruit-bob">
+                  <div className="w-36 h-36 sm:w-40 sm:h-40 rounded-full overflow-hidden border-3 border-black shadow-[4px_4px_0_#000000] bg-white p-2.5 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                     <img
                       src={specimen.image}
                       alt={specimen.name}
