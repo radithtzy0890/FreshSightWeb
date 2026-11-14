@@ -39,10 +39,21 @@ export const getTodayString = (): string =>
     year: 'numeric',
   });
 
-export const getDiagnosisTitle = (res: AnalysisResult): string =>
-  `${FRUIT_NAMES[res.fruit]} ${res.rot ? 'Busuk' : 'Segar'}`;
+export const getDiagnosisTitle = (res: AnalysisResult): string => {
+  const verdict =
+    (res.fruitCount ?? 1) > 1 ? 'ragu' : res.verdict ?? getVerdict(res.conf, res.rot);
+  const label = verdict === 'segar' ? 'Segar' : verdict === 'busuk' ? 'Busuk' : 'Status Ragu';
+  return `${FRUIT_NAMES[res.fruit]} ${label}`;
+};
 
 export const getExplanationText = (res: AnalysisResult): string => {
+  if ((res.fruitCount ?? 1) > 1) {
+    return `Terdeteksi ${res.fruitCount} kandidat buah dalam foto ini. Model dilatih untuk satu buah per bingkai, jadi hasil ditandai RAGU agar tidak menyesatkan. Coba foto satu buah di tengah bingkai dengan latar polos.`;
+  }
+  const verdict = getVerdict(res.conf, res.rot);
+  if (verdict === 'ragu') {
+    return `Model hanya memiliki keyakinan ${formatPercent(res.conf)} (di bawah ambang 60%), sehingga status ditandai RAGU. Coba foto ulang dengan satu buah di tengah bingkai, pencahayaan merata, dan latar polos agar hasil lebih pasti.`;
+  }
   if (res.ex) return res.ex;
   const isLow = res.conf < 0.7;
   const prefix = isLow ? 'Hasil estimasi awal: ' : '';
@@ -547,6 +558,7 @@ export async function fetchPredictionFromApi(
   const json = await response.json();
   const labelIndex = MODEL_LABELS.indexOf(json.label);
   const ft = json.features || {};
+  const fruitCount = ft.fruit_count ?? 1;
   const defectRatio = +(ft.rasio_defek || 0);
   const formatBase64 = (b64?: string) =>
     b64 ? (b64.startsWith('data:') ? b64 : 'data:image/png;base64,' + b64) : null;
@@ -556,7 +568,8 @@ export async function fetchPredictionFromApi(
     fruit: FRUIT_KEYS[labelIndex >> 1],
     rot: (labelIndex & 1) as 0 | 1,
     conf: json.confidence,
-    verdict: getVerdict(json.confidence, (labelIndex & 1) as 0 | 1),
+    verdict: fruitCount > 1 ? 'ragu' : getVerdict(json.confidence, (labelIndex & 1) as 0 | 1),
+    fruitCount,
     n: ft.jumlah_bercak || 0,
     rasio: Math.round(defectRatio <= 1 ? defectRatio * 100 : defectRatio),
     loc: ft.lokasi_bercak || '–',

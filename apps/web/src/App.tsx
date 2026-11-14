@@ -2,14 +2,16 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Lenis from 'lenis';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
 import { ResultsInspector } from './components/ResultsInspector';
 import { HistoryJournal } from './components/HistoryJournal';
+import { ModelDataPage } from './components/ModelDataPage';
 import { Footer } from './components/Footer';
 import { AnalysisResult, DemoPreset } from './types';
-import { createSampleFruitDataUrl, loadImageElement } from './services/cvEngine';
+import { loadImageElement } from './services/cvEngine';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -34,149 +36,58 @@ const TOAST_ICONS = {
   default: <Info size={16} className="text-[#00FF87]" />,
 };
 
-// Seed initial history if empty so user immediately sees high-res fruit photos in Riwayat
+function persistHistory(items: AnalysisResult[]): void {
+  const write = (data: AnalysisResult[]) => {
+    localStorage.setItem('freshsight_history', JSON.stringify(data));
+  };
+
+  try {
+    write(items);
+    return;
+  } catch {}
+
+  const withoutVisuals = items.map((item) => {
+    const copy = { ...item };
+    delete copy.cam;
+    delete copy.msk;
+    return copy;
+  });
+
+  try {
+    write(withoutVisuals);
+    return;
+  } catch {}
+
+  try {
+    write(withoutVisuals.slice(0, 10));
+  } catch {}
+}
+
 function getInitialHistory(): AnalysisResult[] {
   try {
     const saved = localStorage.getItem('freshsight_history');
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        // Upgrade legacy canvas base64 to realistic photographic images
-        return parsed.map((item: AnalysisResult) => {
-          if (!item.img || item.img.startsWith('data:image')) {
-            const freshUrl = createSampleFruitDataUrl(item.fruit, item.rot);
-            return { ...item, img: freshUrl, thumb: freshUrl };
-          }
-          return item;
-        });
+      if (Array.isArray(parsed)) {
+        const cleaned = parsed.filter(
+          (item: AnalysisResult) => !(item.id >= 101 && item.id <= 106)
+        );
+        persistHistory(cleaned);
+        return cleaned;
       }
     }
   } catch {}
 
-  const initialItems: AnalysisResult[] = [
-    {
-      id: 101,
-      fruit: 'apple',
-      rot: 0,
-      conf: 0.992,
-      verdict: 'segar',
-      n: 0,
-      rasio: 1,
-      loc: '–',
-      jw: 8.2,
-      tk: 0.09,
-      p: [0.992, 0.008, 0, 0, 0, 0],
-      src: 'contoh',
-      model: 'MobileNetV2 (Edge)',
-      date: new Date(Date.now() - 3600000 * 2).toISOString(),
-      img: '/fruit/apple_fresh.jpg',
-      thumb: '/fruit/apple_fresh.jpg',
-    },
-    {
-      id: 102,
-      fruit: 'apple',
-      rot: 1,
-      conf: 0.946,
-      verdict: 'busuk',
-      n: 5,
-      rasio: 24,
-      loc: 'tengah kiri',
-      jw: 47.1,
-      tk: 0.31,
-      p: [0.054, 0.946, 0, 0, 0, 0],
-      src: 'contoh',
-      model: 'MobileNetV2 (Edge)',
-      date: new Date(Date.now() - 3600000 * 5).toISOString(),
-      img: '/fruit/apple_rotten.jpg',
-      thumb: '/fruit/apple_rotten.jpg',
-    },
-    {
-      id: 103,
-      fruit: 'banana',
-      rot: 0,
-      conf: 0.988,
-      verdict: 'segar',
-      n: 0,
-      rasio: 2,
-      loc: '–',
-      jw: 9.8,
-      tk: 0.12,
-      p: [0, 0, 0.988, 0.012, 0, 0],
-      src: 'contoh',
-      model: 'MobileNetV2 (Edge)',
-      date: new Date(Date.now() - 3600000 * 8).toISOString(),
-      img: '/fruit/banana_fresh.jpg',
-      thumb: '/fruit/banana_fresh.jpg',
-    },
-    {
-      id: 104,
-      fruit: 'banana',
-      rot: 1,
-      conf: 0.974,
-      verdict: 'busuk',
-      n: 4,
-      rasio: 32,
-      loc: 'tengah',
-      jw: 42.5,
-      tk: 0.18,
-      p: [0, 0, 0.026, 0.974, 0, 0],
-      src: 'contoh',
-      model: 'MobileNetV2 (Edge)',
-      date: new Date(Date.now() - 3600000 * 14).toISOString(),
-      img: '/fruit/banana_rotten.jpg',
-      thumb: '/fruit/banana_rotten.jpg',
-    },
-    {
-      id: 105,
-      fruit: 'orange',
-      rot: 0,
-      conf: 0.985,
-      verdict: 'segar',
-      n: 0,
-      rasio: 1,
-      loc: '–',
-      jw: 8.9,
-      tk: 0.10,
-      p: [0, 0, 0, 0, 0.985, 0.015],
-      src: 'contoh',
-      model: 'MobileNetV2 (Edge)',
-      date: new Date(Date.now() - 3600000 * 20).toISOString(),
-      img: '/fruit/orange_fresh.jpg',
-      thumb: '/fruit/orange_fresh.jpg',
-    },
-    {
-      id: 106,
-      fruit: 'orange',
-      rot: 1,
-      conf: 0.880,
-      verdict: 'busuk',
-      n: 2,
-      rasio: 11,
-      loc: 'bawah kiri',
-      jw: 33.4,
-      tk: 0.22,
-      p: [0, 0, 0, 0, 0.120, 0.880],
-      src: 'contoh',
-      model: 'MobileNetV2 (Edge)',
-      date: new Date(Date.now() - 3600000 * 28).toISOString(),
-      img: '/fruit/orange_rotten.jpg',
-      thumb: '/fruit/orange_rotten.jpg',
-    },
-  ];
-
-  try {
-    localStorage.setItem('freshsight_history', JSON.stringify(initialItems));
-  } catch {}
-
-  return initialItems;
+  return [];
 }
 
 export const App: React.FC = () => {
-  const [activeSection, setActiveSection] = useState('section-hero');
   const [currentResult, setCurrentResult] = useState<AnalysisResult | null>(null);
   const [history, setHistory] = useState<AnalysisResult[]>(getInitialHistory);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const lenisRef = useRef<Lenis | null>(null);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const showToast = useCallback((message: string, type: 'default' | 'success' | 'error' = 'default') => {
     const id = Date.now() + Math.random();
@@ -186,7 +97,6 @@ export const App: React.FC = () => {
     }, 3500);
   }, []);
 
-  // Smooth scroll
   useEffect(() => {
     const lenis = new Lenis({
       duration: 1.15,
@@ -214,49 +124,20 @@ export const App: React.FC = () => {
     return () => lenis.destroy();
   }, []);
 
-  // Section Tracking
   useEffect(() => {
-    const sectionIds = [
-      'section-hero',
-      'section-cara-kerja',
-      'section-riwayat',
-    ];
-
-    const handleScroll = () => {
-      const scrollY = window.scrollY;
-      const offset = 180;
-      for (const id of sectionIds) {
-        const el = document.getElementById(id);
-        if (el) {
-          const top = el.offsetTop - offset;
-          const height = el.offsetHeight;
-          if (scrollY >= top && scrollY < top + height) {
-            setActiveSection(id);
-            break;
-          }
-        }
-      }
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  const navigateTo = useCallback((sectionId: string) => {
-    const target = document.getElementById(sectionId);
-    if (!target) return;
-    if (lenisRef.current) {
-      lenisRef.current.scrollTo(target, { offset: -88 });
+    const lenis = lenisRef.current;
+    if (lenis) {
+      lenis.resize();
+      lenis.scrollTo(0, { immediate: true });
     } else {
-      target.scrollIntoView({ behavior: 'smooth' });
+      window.scrollTo(0, 0);
     }
-    setActiveSection(sectionId);
-  }, []);
+  }, [location.pathname]);
 
-  // Handle Analysis Complete
   const handleAnalysisComplete = useCallback(async (res: AnalysisResult) => {
     setCurrentResult(res);
 
-    let thumbnail: string = res.thumb || res.img || '';
+    let thumbnail: string = res.thumb || '';
     if (!thumbnail && res.img) {
       try {
         const img = await loadImageElement(res.img);
@@ -277,23 +158,20 @@ export const App: React.FC = () => {
 
     setHistory((prev) => {
       const updated = [historyItem, ...prev].slice(0, 30);
-      try { localStorage.setItem('freshsight_history', JSON.stringify(updated)); } catch {}
+      persistHistory(updated);
       return updated;
     });
-
-    navigateTo('section-cara-kerja');
-  }, [navigateTo]);
+  }, []);
 
   const handleSelectHistoryDetail = (item: AnalysisResult) => {
     setCurrentResult(item);
-    navigateTo('section-cara-kerja');
     showToast(`Spesimen ${item.fruit} berhasil dipasang pada lensa diagnosis.`, 'default');
   };
 
   const handleDeleteHistoryItem = (id: number) => {
     setHistory((prev) => {
       const updated = prev.filter((x) => x.id !== id);
-      try { localStorage.setItem('freshsight_history', JSON.stringify(updated)); } catch {}
+      persistHistory(updated);
       return updated;
     });
     showToast('Spesimen dihapus dari arsip.');
@@ -302,43 +180,51 @@ export const App: React.FC = () => {
   const handleClearHistory = () => {
     if (window.confirm('Kosongkan seluruh arsip spesimen pada perangkat ini?')) {
       setHistory([]);
-      try { localStorage.setItem('freshsight_history', '[]'); } catch {}
+      persistHistory([]);
       showToast('Seluruh arsip spesimen berhasil dikosongkan.');
     }
   };
 
   return (
     <>
-      <Navbar activeSection={activeSection} onNavigate={navigateTo} />
+      <Navbar />
 
       <main>
-        {/* Scene 1: Hero Stage with Comic Blast & Pedestal & Slider (Image 1) */}
-        <Hero
-          onAnalysisComplete={handleAnalysisComplete}
-          showToast={showToast}
-          presets={DEMO_PRESETS}
-        />
-
-        {/* Scene 2 & 3: HOW IT WORKS + IMPACT BANNER (Image 2 & 3) */}
-        <ResultsInspector
-          result={currentResult}
-          onNavigate={navigateTo}
-          showToast={showToast}
-        />
-
-        {/* Scene 4: WHERE TO FIND US Star Charts & Photo History (Image 4) */}
-        <HistoryJournal
-          history={history}
-          onSelectDetail={handleSelectHistoryDetail}
-          onDeleteItem={handleDeleteHistoryItem}
-          onClearAll={handleClearHistory}
-          onNavigate={navigateTo}
-        />
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <Hero
+                onAnalysisComplete={handleAnalysisComplete}
+                showToast={showToast}
+                presets={DEMO_PRESETS}
+                result={currentResult}
+              />
+            }
+          />
+          <Route
+            path="/cara-kerja"
+            element={<ResultsInspector result={currentResult} />}
+          />
+          <Route path="/model" element={<ModelDataPage />} />
+          <Route
+            path="/riwayat"
+            element={
+              <HistoryJournal
+                history={history}
+                onSelectDetail={handleSelectHistoryDetail}
+                onDeleteItem={handleDeleteHistoryItem}
+                onClearAll={handleClearHistory}
+                onNavigate={(path) => navigate(path)}
+              />
+            }
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </main>
 
-      <Footer onNavigate={navigateTo} />
+      <Footer />
 
-      {/* Floating Tactical Notification */}
       <div
         className="fixed bottom-6 right-4 sm:right-8 z-[9999] flex flex-col gap-2 pointer-events-none"
         aria-live="polite"

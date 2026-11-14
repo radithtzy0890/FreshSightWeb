@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
+import { Link, NavLink } from 'react-router-dom';
 import { Volume2, VolumeX } from 'lucide-react';
 import { sound } from '../services/soundEngine';
 
-interface NavbarProps {
-  activeSection: string;
-  onNavigate: (id: string) => void;
-}
+const navClass = ({ isActive }: { isActive: boolean }) =>
+  `font-passata text-lg uppercase tracking-tight transition-opacity hover:opacity-70 cursor-pointer ${
+    isActive ? 'text-black' : 'text-black/60'
+  }`;
 
-export const Navbar: React.FC<NavbarProps> = ({ onNavigate }) => {
+export const Navbar: React.FC = () => {
   const [soundActive, setSoundActive] = useState(() => sound.isEnabled());
 
   const handleSoundToggle = () => {
@@ -15,30 +16,42 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate }) => {
     setSoundActive(next);
   };
 
-  const handleNav = (id: string) => {
-    sound.play('swoosh');
-    onNavigate(id);
-  };
-
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-[#FFC737] border-b-2 border-black transition-colors">
       <div className="max-w-7xl mx-auto px-6 sm:px-10 h-18 flex items-center justify-between">
 
-        {/* Left Navigation Links */}
-        <div className="flex items-center gap-6 sm:gap-8 font-passata text-lg uppercase tracking-tight">
-          <button
-            onClick={() => handleNav('section-cara-kerja')}
+        <div className="flex items-center gap-6 sm:gap-8">
+          <NavLink
+            to="/"
+            end
+            className={(props) => `${navClass(props)} hidden sm:inline`}
             onMouseEnter={() => sound.play('hover')}
-            className="text-black hover:opacity-70 transition-opacity cursor-pointer"
+            onClick={() => sound.play('swoosh')}
+          >
+            Beranda
+          </NavLink>
+          <NavLink
+            to="/cara-kerja"
+            className={navClass}
+            onMouseEnter={() => sound.play('hover')}
+            onClick={() => sound.play('swoosh')}
           >
             Cara Kerja
-          </button>
+          </NavLink>
+          <NavLink
+            to="/model"
+            className={(props) => `${navClass(props)} hidden md:inline`}
+            onMouseEnter={() => sound.play('hover')}
+            onClick={() => sound.play('swoosh')}
+          >
+            Model
+          </NavLink>
         </div>
 
-        {/* Center Iconic Logo: FRESHSIGHT with Japanese Subtitle (Matching Planet Oño) */}
-        <button
-          onClick={() => handleNav('section-hero')}
+        <Link
+          to="/"
           onMouseEnter={() => sound.play('hover')}
+          onClick={() => sound.play('swoosh')}
           className="flex flex-col items-center group cursor-pointer"
         >
           <div className="flex items-center gap-1 font-passata text-2xl sm:text-3xl text-black tracking-tighter uppercase font-bold leading-none">
@@ -51,19 +64,18 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate }) => {
           <span className="font-mono-tech text-[10px] text-black font-bold tracking-widest -mt-0.5">
             新鮮ちゃん
           </span>
-        </button>
+        </Link>
 
-        {/* Right Navigation & Sound Toggle */}
         <div className="flex items-center gap-4 sm:gap-6">
-          <button
-            onClick={() => handleNav('section-riwayat')}
+          <NavLink
+            to="/riwayat"
+            className={(props) => `${navClass(props)} hidden sm:inline`}
             onMouseEnter={() => sound.play('hover')}
-            className="hidden sm:inline font-passata text-lg text-black hover:opacity-70 transition-opacity uppercase cursor-pointer"
+            onClick={() => sound.play('swoosh')}
           >
             Riwayat
-          </button>
+          </NavLink>
 
-          {/* Planet Oño Exact Sound On Oval Pill Button */}
           <button
             onClick={handleSoundToggle}
             onMouseEnter={() => sound.play('hover')}

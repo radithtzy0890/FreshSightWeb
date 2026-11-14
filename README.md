@@ -1,58 +1,246 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# FreshSight — Klasifikasi Kesegaran Buah dengan Explainable AI
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+FreshSight adalah aplikasi computer vision untuk mengklasifikasikan kesegaran buah
+(apel, pisang, jeruk) ke dalam **6 kelas**:
 
-## About Laravel
+`fresh_apple` · `rotten_apple` · `fresh_banana` · `rotten_banana` · `fresh_orange` · `rotten_orange`
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Aplikasi menampilkan vonis, probabilitas per kelas, Grad-CAM, area cacat, dan penjelasan
+terukur. Foto diproses oleh model MobileNetV3Small yang berjalan di server inferensi lokal
+(FastAPI + TensorFlow), lalu UI React menampilkan hasilnya.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+> **Aplikasi aktif:** React/Vite di `apps/web` + FastAPI di `backend`.
+> Laravel di root adalah scaffolding lama; route Blade-nya tidak dipakai sebagai UI utama.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Fitur
 
-## Learning Laravel
+- Upload foto/galeri, kamera web, dan kamera langsung HP.
+- Klasifikasi 6 kelas kesegaran buah.
+- **Grad-CAM** dan **area cacat** (mask) untuk explainability.
+- **Auto-crop buah kecil** pada latar ramai (komponen merah/hijau).
+- **Adaptive TTA** (flip + center-crop) saat keyakinan awal rendah.
+- Status **RAGU** jika keyakinan < 60%.
+- **Peringatan multi-buah** jika terdeteksi lebih dari satu kandidat buah.
+- Riwayat analisis tersimpan di `localStorage` (tanpa server).
+- Halaman terpisah: Beranda, Cara Kerja, Model & Data, Riwayat.
+- Detail hasil dalam modal (foto/Grad-CAM/area cacat, probabilitas, ciri terukur, unduh ringkasan).
+- Halaman Model & Data berisi arsitektur, metrik, dataset, dan batasan.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Stack
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+| Bagian | Teknologi |
+|---|---|
+| UI | React 19, TypeScript, Vite 6, Tailwind CSS 4, React Router 7 (HashRouter) |
+| API | FastAPI, Uvicorn, TensorFlow CPU 2.16, Keras 3, OpenCV, Pillow |
+| Model | MobileNetV3Small + head 6 kelas (hasil recalibration) |
+| Scaffolding | Laravel 13 / PHP 8.3 (tidak dipakai sebagai UI aktif) |
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+## Struktur Proyek
 
-## Agentic Development
+```text
+backend/
+  app.py                         # FastAPI: /v1/health, /v1/predict, Grad-CAM, fitur defek
+  requirements.txt
+  models/
+    mobilenetv3small_external_green_v2.keras   # model aktif
+    mobilenetv3small_external_recalibrated.keras
+  tools/
+    recalibrate_orange_head.py   # script recalibration head (path dataset lokal)
+    evaluate_all.py              # evaluasi menyeluruh (path dataset lokal)
+    summarize_eval.py
+    evaluation_results.json
+    orange_recalibration_metrics.json
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+apps/web/
+  src/
+    components/                  # Hero, ResultsInspector, HistoryJournal, ModelDataPage, dll.
+    services/cvEngine.ts         # analisis lokal + fetchPredictionFromApi
+    types/index.ts
+    App.tsx                      # routing + state riwayat
+    main.tsx                     # HashRouter
+  public/fruit/                  # foto contoh
+  dist/                          # hasil `npm run build`
 
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+resources/views/index.blade.php  # tampilan Blade lama (legacy)
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+## Menjalankan Aplikasi
 
-## Contributing
+### Prasyarat
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+- PHP 8.3 + Composer
+- Node.js 20+ dan npm
+- Python 3.12
+- Git
 
-## Code of Conduct
+### 1. Setup Laravel (opsional, untuk scaffolding/tests)
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```powershell
+composer install
+copy .env.example .env
+php artisan key:generate
+New-Item database\database.sqlite
+php artisan migrate
+```
 
-## Security Vulnerabilities
+### 2. Jalankan backend model
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```powershell
+cd backend
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+uvicorn app:app --host 127.0.0.1 --port 8001
+```
 
-## License
+Model aktif sudah ada di `backend/models/mobilenetv3small_external_green_v2.keras`.
+Jika ingin memakai model lain:
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```powershell
+$env:MODEL_PATH = "C:\path\ke\model.keras"
+uvicorn app:app --host 127.0.0.1 --port 8001
+```
+
+Cek backend:
+
+```powershell
+curl.exe http://127.0.0.1:8001/v1/health
+```
+
+### 3. Jalankan frontend
+
+Dari root proyek:
+
+```powershell
+npm install
+Set-Content apps\web\.env.local "VITE_PREDICT_API_URL=http://127.0.0.1:8001"
+npm run dev
+```
+
+Buka **http://localhost:5173**.
+
+### 4. Build produksi
+
+```powershell
+npm run build
+```
+
+Hasil build ada di `apps/web/dist`. UI memakai `HashRouter`, sehingga rute
+`/#/cara-kerja`, `/#/model`, dan `/#/riwayat` tidak memerlukan rewrite server.
+
+## Halaman
+
+| Route | Isi |
+|---|---|
+| `/#/` | Beranda: upload/kamera, preset contoh, dan kartu hasil di samping area scan |
+| `/#/cara-kerja` | Empat langkah analisis + kotak observasi hasil |
+| `/#/model` | Arsitektur, metrik evaluasi, dataset, explainability, batasan |
+| `/#/riwayat` | Riwayat tersimpan + modal detail yang bisa discroll |
+
+## API
+
+### `GET /v1/health`
+
+```json
+{
+  "status": "ok",
+  "model": {
+    "name": "mobilenetv3small_external_green_v2",
+    "file": "mobilenetv3small_external_green_v2.keras",
+    "input": "224x224x3",
+    "classes": ["fresh_apple", "rotten_apple", "fresh_banana", "rotten_banana", "fresh_orange", "rotten_orange"]
+  }
+}
+```
+
+### `POST /v1/predict`
+
+`multipart/form-data`, field: `image`.
+
+```powershell
+curl.exe -X POST http://127.0.0.1:8001/v1/predict -F "image=@C:\path\foto.jpg"
+```
+
+Field respons utama:
+
+- `label`, `fruit`, `freshness`, `confidence`
+- `probs`: probabilitas 6 kelas
+- `features`: `fruit_count`, `rasio_defek`, `jumlah_bercak`, `bercak_terbesar`,
+  `lokasi_bercak`, `fokus_gradcam`, `jarak_warna`, `tekstur`
+- `images`: `gradcam_overlay`, `defect_mask` (base64 PNG)
+- `explanation`, `inference_ms`, `tta`, `crop_used`, `model`
+
+CORS mengizinkan `http://localhost:5173`, `http://127.0.0.1:5173`,
+`http://localhost:8000`, dan `http://127.0.0.1:8000`. Ubah `allow_origins`
+di `backend/app.py` jika frontend berjalan di origin lain.
+
+## Model
+
+- Backbone: **MobileNetV3Small**, feature map terakhir 7×7×576.
+- Head: GlobalAveragePooling2D → Dense 6 (softmax), total **942.582 parameter**.
+- Input: 224×224×3, skala 0–1, dengan `Rescaling(2, -1)` internal.
+- Grad-CAM: gradien kelas target terhadap feature map 7×7×576.
+- Auto-crop: komponen buah merah/hijau yang kecil (<25% frame) dipakai untuk
+  klasifikasi/Grad-CAM/fitur; buah close-up memakai frame penuh.
+- TTA adaptif: hanya saat keyakinan penuh < 80%, dan hanya dipakai jika menang
+  jelas (selisih ≥ 20 poin atau keyakinan ≥ 85%).
+- Model aktif: `mobilenetv3small_external_green_v2.keras` (green orange + cacat orange
+  ditambahkan ke head recalibration).
+
+### Ringkasan evaluasi
+
+| Dataset | n | Akurasi |
+|---|---:|---:|
+| Test asli 6 kelas | 918 | **98,69%** |
+| Train sample (sanity check) | 300 | 99,33% |
+| AFQC Test (apel eksternal) | 232 | 93,97% |
+| Green orange holdout | 600 | **99,83%** |
+| Fresh orange eksternal | 200 | 94,00% |
+| Rotten orange eksternal | 200 | 100% |
+| Blackspot orange | 200 | 100% |
+| Canker orange | 200 | 98,00% |
+| AFQC apple fresh holdout | 209 | 98,09% |
+| AFQC apple rotten holdout | 209 | 94,74% |
+| Banana overripe | 239 | 100% |
+| External hard set (16, via API) | 16 | 13/16 |
+
+Recall per kelas pada test asli: `fresh_apple` 98,31%, `rotten_apple` 100%,
+`fresh_banana` 98,73%, `rotten_banana` 99,12%, `fresh_orange` 98,31%,
+`rotten_orange` 100%.
+
+### Overfitting check
+
+- Stage 1 MobileNet: train 98,43% / val 98,84%
+- Stage 2 MobileNet: train **99,88%** / val **99,68%** (selisih 0,20 poin)
+- Train sample 300: **99,33%** vs test asli **98,69%** (selisih 0,64 poin)
+- Model final diuji pada held-out: original 98,69%, green orange 99,83%,
+  external apple 98,56%, banana 100%.
+
+Kesimpulan: **model final tidak overfitting**. Satu eksperimen fine-tune eksternal
+di tengah proses sempat menunjukkan gap train/val; model final memakai head
+recalibrated dan hasil held-out-nya kuat. Kegagalan yang tersisa adalah domain shift
+(latar ramai, buah dipotong, tumpukan, ilustrasi), bukan hafalan data training.
+
+## Batasan yang Diketahui
+
+- Model adalah **classifier satu buah**, bukan object detector. Buah yang saling
+  menempel dapat dihitung sebagai satu komponen.
+- Auto-crop memakai komponen merah/hijau; pisang di latar sangat ramai masih bisa
+  salah. Untuk pisang, foto close-up dengan buah memenuhi frame memberi hasil terbaik.
+- Pada subset AFQC dengan buah kecil, auto-crop menurunkan akurasi (94% → 87%);
+  frame penuh tetap tersedia untuk foto close-up.
+- Tumpukan buah, buah dipotong tidak umum, dan ilustrasi dapat menghasilkan RAGU
+  atau kelas yang salah.
+- `backend/tools/evaluate_all.py` dan `recalibrate_orange_head.py` memakai path
+  dataset lokal dari mesin pengembang; sesuaikan path sebelum menjalankan ulang.
+
+## Dataset & Kredit
+
+- [Fruit-freshness-detection-dataset](https://github.com/zijianchen98/Fruit-freshness-detection-dataset)
+- [AFQC (Apple Fruit Quality Categorization)](https://github.com/mustafa20999/AFQC)
+- [Banana Images CNN](https://github.com/pratheesh3780/Banana_images_CNN)
+- [Orange Fruit Image Dataset (Mendeley)](https://data.mendeley.com/datasets/zk4hzhtcdd/2)
+
+## Lisensi
+
+MIT.

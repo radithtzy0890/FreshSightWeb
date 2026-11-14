@@ -20,6 +20,7 @@ export interface AnalysisResult {
   jw: number;
   tk: number;
   p: number[];
+  fruitCount?: number;
   cam?: string | null;
   msk?: string | null;
   ar?: number;
