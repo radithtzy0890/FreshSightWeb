@@ -1,13 +1,55 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Camera, Upload, ArrowLeft, ArrowRight, ChevronDown, RefreshCw, X, AlertCircle, Smartphone, FlipHorizontal } from 'lucide-react';
 import { AnalysisResult, DemoPreset } from '../types';
-import { runAnalysis } from '../services/cvEngine';
+import {
+  runAnalysis,
+  fetchPredictionFromApi,
+  loadImageElement,
+} from '../services/cvEngine';
 import { sound } from '../services/soundEngine';
+import { AnalysisResultCard } from './AnalysisResultCard';
+
+const API_BASE = (import.meta.env.VITE_PREDICT_API_URL || '').replace(/\/$/, '');
+
+function imageToDataUrl(img: HTMLImageElement, maxDim: number, quality: number): string {
+  const scale = Math.min(1, maxDim / Math.max(img.naturalWidth, img.naturalHeight));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(img.naturalWidth * scale);
+  canvas.height = Math.round(img.naturalHeight * scale);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    return img.src;
+  }
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL('image/jpeg', quality);
+}
+
+async function analyzeFile(file: File) {
+  if (!API_BASE) {
+    return runAnalysis(file, 'browser');
+  }
+
+  const url = URL.createObjectURL(file);
+
+  try {
+    const img = await loadImageElement(url);
+    const result = await fetchPredictionFromApi(API_BASE, img, {
+      url,
+      name: file.name,
+    });
+    const photo = imageToDataUrl(img, 900, 0.82);
+    const thumb = imageToDataUrl(img, 320, 0.8);
+    return { ...result, img: photo, thumb };
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
 
 interface HeroProps {
   onAnalysisComplete: (result: AnalysisResult) => void;
   showToast: (msg: string, type?: 'default' | 'success' | 'error') => void;
   presets: DemoPreset[];
+  result: AnalysisResult | null;
 }
 
 const SPECIMENS = [
@@ -83,13 +125,15 @@ export const Hero: React.FC<HeroProps> = ({
   onAnalysisComplete,
   showToast,
   presets,
+  result,
 }) => {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [analyzing, setAnalyzing] = useState(false);
   const [cameraActive, setCameraActive] = useState(false);
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
   const [cameraError, setCameraError] = useState<string | null>(null);
-  const [uploadedPhoto, setUploadedPhoto] = useState<string | null>(null);
+  const [uploadedPhoto, setUploadedPhoto] = useState<string | null>(result?.img || null);
+  const [showHeatmap, setShowHeatmap] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const nativeCameraInputRef = useRef<HTMLInputElement>(null);
@@ -113,8 +157,10 @@ export const Hero: React.FC<HeroProps> = ({
     setAnalyzing(true);
     try {
       const preset = presets[specimen.presetIdx];
-      const result = await runAnalysis(null, 'contoh', preset);
-      onAnalysisComplete(result);
+      const analysis = await runAnalysis(null, 'contoh', preset);
+      setUploadedPhoto(analysis.img || null);
+      setShowHeatmap(false);
+      onAnalysisComplete(analysis);
       showToast(`Spesimen ${specimen.name} berhasil dianalisis.`, 'success');
     } catch {
       showToast('Gagal memproses spesimen.', 'error');
@@ -129,9 +175,10 @@ export const Hero: React.FC<HeroProps> = ({
     sound.play('click');
     setAnalyzing(true);
     try {
-      const result = await runAnalysis(file, 'browser');
-      setUploadedPhoto(result.img || null);
-      onAnalysisComplete(result);
+      const analysis = await analyzeFile(file);
+      setUploadedPhoto(analysis.img || null);
+      setShowHeatmap(false);
+      onAnalysisComplete(analysis);
       showToast('Foto buah berhasil dianalisis dengan akurat.', 'success');
     } catch {
       showToast('Gagal memproses foto buah.', 'error');
@@ -252,9 +299,10 @@ export const Hero: React.FC<HeroProps> = ({
       stopCamera();
       setAnalyzing(true);
       try {
-        const result = await runAnalysis(file, 'browser');
-        setUploadedPhoto(result.img || null);
-        onAnalysisComplete(result);
+        const analysis = await analyzeFile(file);
+        setUploadedPhoto(analysis.img || null);
+        setShowHeatmap(false);
+        onAnalysisComplete(analysis);
         showToast('Hasil foto kamera berhasil dianalisis dengan akurat.', 'success');
       } catch {
         showToast('Gagal memproses foto kamera.', 'error');
@@ -448,7 +496,7 @@ export const Hero: React.FC<HeroProps> = ({
               ) : uploadedPhoto ? (
                 <div className="relative w-full h-full rounded-[130px] overflow-hidden border-2 border-black bg-[#ECE7DC] flex items-center justify-center p-3">
                   <img
-                    src={uploadedPhoto}
+                    src={showHeatmap && result?.cam ? result.cam : uploadedPhoto}
                     alt="Spesimen terunggah"
                     className="w-full h-full object-contain drop-shadow-md rounded-2xl"
                   />
@@ -456,6 +504,7 @@ export const Hero: React.FC<HeroProps> = ({
                     onClick={(e) => {
                       e.stopPropagation();
                       setUploadedPhoto(null);
+                      setShowHeatmap(false);
                     }}
                     className="absolute top-4 right-4 p-1.5 rounded-full bg-black/80 text-white border border-white hover:bg-black cursor-pointer shadow-md"
                   >
@@ -493,7 +542,7 @@ export const Hero: React.FC<HeroProps> = ({
                 <div className="absolute inset-0 bg-black/85 backdrop-blur-sm flex flex-col items-center justify-center gap-2 z-30">
                   <RefreshCw size={36} className="text-[#8DF947] animate-spin" />
                   <p className="font-passata text-base text-[#8DF947] uppercase tracking-wider">
-                    MEMINDAI FOTON BUAH...
+                    MEMINDAI FOTO BUAH...
                   </p>
                 </div>
               )}
@@ -508,10 +557,18 @@ export const Hero: React.FC<HeroProps> = ({
             )}
           </div>
 
-          {/* Right Column: Massive Headline & Curated Story Copy & Slider Controls */}
+          {/* Right Column: Result Card or Massive Headline */}
           <div className="lg:col-span-5 flex flex-col items-start space-y-6 order-3">
 
-            {/* Massive Display Headline: Refers specifically to fruit freshness & quality */}
+            {result ? (
+              <AnalysisResultCard
+                result={result}
+                showHeatmap={showHeatmap}
+                onToggleHeatmap={() => setShowHeatmap((prev) => !prev)}
+              />
+            ) : (
+              <>
+                {/* Massive Display Headline: Refers specifically to fruit freshness & quality */}
             <h1 className="font-passata text-5xl sm:text-6xl lg:text-[4.25rem] text-black text-shadow-3d-black uppercase tracking-tight font-bold leading-[0.95]">
               KESEGARAN<br />
               BUAH ALAMI.<br />
@@ -552,6 +609,8 @@ export const Hero: React.FC<HeroProps> = ({
                 <ArrowRight size={22} strokeWidth={3} />
               </button>
             </div>
+              </>
+            )}
 
           </div>
 

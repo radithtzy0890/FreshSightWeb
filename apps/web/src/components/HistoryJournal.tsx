@@ -12,6 +12,12 @@ interface HistoryJournalProps {
   onNavigate: (id: string) => void;
 }
 
+const verdictLabel = (verdict: Verdict): string =>
+  verdict === 'segar' ? 'Segar' : verdict === 'busuk' ? 'Busuk' : 'Ragu';
+
+const verdictBadgeLabel = (verdict: Verdict): string =>
+  verdict === 'segar' ? '✓ Segar' : verdict === 'busuk' ? '× Busuk' : '? Ragu';
+
 export const HistoryJournal: React.FC<HistoryJournalProps> = ({
   history,
   onSelectDetail,
@@ -33,14 +39,16 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
   const filteredHistory = useMemo(() => {
     return history.filter((item) => {
       const fruitName = FRUIT_NAMES[item.fruit] || item.fruit;
-      const statusText = item.rot ? 'busuk' : 'segar';
+      const itemVerdict = item.verdict ?? getVerdict(item.conf, item.rot);
+      const statusText = verdictLabel(itemVerdict).toLowerCase();
       const title = `${fruitName} ${statusText}`.toLowerCase();
       const matchesSearch = !searchQuery || title.includes(searchQuery.toLowerCase());
       const matchesFruit = filterFruit === 'all' || item.fruit === filterFruit;
       const matchesStatus =
         filterStatus === 'all' ||
-        (filterStatus === 'segar' && item.rot === 0) ||
-        (filterStatus === 'busuk' && item.rot === 1);
+        (filterStatus === 'segar' && itemVerdict === 'segar') ||
+        (filterStatus === 'busuk' && itemVerdict === 'busuk') ||
+        (filterStatus === 'ragu' && itemVerdict === 'ragu');
       return matchesSearch && matchesFruit && matchesStatus;
     });
   }, [history, searchQuery, filterFruit, filterStatus]);
@@ -64,10 +72,14 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
   const handleCopySummary = (item: AnalysisResult) => {
     sound.play('click');
     const fruitName = FRUIT_NAMES[item.fruit];
-    const status = item.rot ? 'Busuk' : 'Segar';
-    const text = `${fruitName} ${status} (${formatPercent(item.conf)}). ${getExplanationText(item)}`;
+    const itemVerdict = item.verdict ?? getVerdict(item.conf, item.rot);
+    const text = `${fruitName} ${verdictLabel(itemVerdict)} (${formatPercent(item.conf)}). ${getExplanationText(item)}`;
     navigator.clipboard?.writeText(text);
   };
+
+  const detailVerdict: Verdict = detailItem
+    ? detailItem.verdict ?? getVerdict(detailItem.conf, detailItem.rot)
+    : 'ragu';
 
   return (
     <section id="section-riwayat" className="py-24 bg-[#0A2E19] text-white relative overflow-hidden border-t-2 border-black">
@@ -121,7 +133,7 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
                   const verdict: Verdict = item.verdict ?? getVerdict(item.conf, item.rot);
                   const photo = item.thumb || item.img || '/fruit/apple_fresh.jpg';
                   const fruitName = FRUIT_NAMES[item.fruit] || item.fruit;
-                  const statusLabel = item.rot ? 'Busuk' : 'Segar';
+                  const statusLabel = verdictLabel(verdict);
 
                   return (
                     <div
@@ -147,7 +159,7 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
                               : 'bg-[#FFC737] text-black'
                           }`}
                         >
-                          {verdict === 'segar' ? '✓ Segar' : '× Busuk'}
+                          {verdictBadgeLabel(verdict)}
                         </span>
 
                         {/* Quick View Button */}
@@ -241,6 +253,7 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
                 <option value="all">Semua status</option>
                 <option value="segar">Segar</option>
                 <option value="busuk">Busuk</option>
+                <option value="ragu">Ragu</option>
               </select>
             </div>
           </div>
@@ -254,7 +267,7 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
                   : 'Tidak ada spesimen yang cocok dengan filter pencarian.'}
               </p>
               <button
-                onClick={() => onNavigate('section-hero')}
+                onClick={() => onNavigate('/')}
                 className="btn-action-wide-ono text-sm"
               >
                 Ambil Foto Sekarang
@@ -266,7 +279,7 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
                 const verdict: Verdict = item.verdict ?? getVerdict(item.conf, item.rot);
                 const photo = item.thumb || item.img || '/fruit/apple_fresh.jpg';
                 const fruitName = FRUIT_NAMES[item.fruit] || item.fruit;
-                const statusLabel = item.rot ? 'Busuk' : 'Segar';
+                const statusLabel = verdictLabel(verdict);
                 const dateStr = item.date
                   ? new Date(item.date).toLocaleDateString('id-ID', {
                       day: 'numeric',
@@ -303,10 +316,12 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
                             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-passata font-bold border border-black shadow-xs ${
                               verdict === 'segar'
                                 ? 'bg-[#8DF947] text-black'
-                                : 'bg-[#FDE8E1] text-[#C9421A]'
+                                : verdict === 'busuk'
+                                ? 'bg-[#FDE8E1] text-[#C9421A]'
+                                : 'bg-[#FFE8B3] text-[#B45309]'
                             }`}
                           >
-                            {verdict === 'segar' ? '✓ Segar' : '× Busuk'}
+                            {verdictBadgeLabel(verdict)}
                           </span>
                         </div>
                       </div>
@@ -342,11 +357,13 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
       {/* 3. FULL DETAIL INSPECTION MODAL (Sesuai Persis Gambar 3: media_1793577331613_6783092a.jpg) */}
       {detailItem && (
         <div
-          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto"
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-start sm:items-center justify-center p-4 overflow-y-auto overscroll-contain"
+          data-lenis-prevent
           onClick={() => setDetailItem(null)}
         >
           <div
-            className="relative w-full max-w-4xl bg-[#F7F2E5] text-black rounded-3xl border-3 border-black shadow-[10px_10px_0_#000000] p-6 sm:p-8 max-h-[92vh] overflow-y-auto"
+            className="relative w-full max-w-4xl bg-[#F7F2E5] text-black rounded-3xl border-3 border-black shadow-[10px_10px_0_#000000] p-6 sm:p-8 max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain"
+            data-lenis-prevent
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close Button */}
@@ -380,10 +397,14 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
                   {/* Stamped Corner Badge */}
                   <span
                     className={`absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-passata uppercase font-bold border-2 border-black shadow-xs ${
-                      detailItem.rot ? 'bg-[#EB3322] text-white' : 'bg-[#8DF947] text-black'
+                      detailVerdict === 'segar'
+                        ? 'bg-[#8DF947] text-black'
+                        : detailVerdict === 'busuk'
+                        ? 'bg-[#EB3322] text-white'
+                        : 'bg-[#FFC737] text-black'
                     }`}
                   >
-                    {detailItem.rot ? '× Busuk' : '✓ Segar'}
+                    {verdictBadgeLabel(detailVerdict)}
                   </span>
                 </div>
 
@@ -429,13 +450,18 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
                 <div>
                   <span
                     className={`inline-flex items-center px-3 py-0.5 rounded-full text-xs font-passata uppercase font-bold border border-black mb-2 ${
-                      detailItem.rot ? 'bg-[#FDE8E1] text-[#C9421A]' : 'bg-[#E6F3EA] text-[#1C6E3D]'
+                      detailVerdict === 'segar'
+                        ? 'bg-[#E6F3EA] text-[#1C6E3D]'
+                        : detailVerdict === 'busuk'
+                        ? 'bg-[#FDE8E1] text-[#C9421A]'
+                        : 'bg-[#FFE8B3] text-[#B45309]'
                     }`}
                   >
-                    {detailItem.rot ? '× Busuk' : '✓ Segar'}
+                    {verdictBadgeLabel(detailVerdict)}
                   </span>
                   <h3 className="font-passata text-3xl sm:text-4xl text-black font-bold uppercase tracking-tight">
-                    {FRUIT_NAMES[detailItem.fruit]} {detailItem.rot ? 'busuk' : 'segar'}
+                    {FRUIT_NAMES[detailItem.fruit]}{' '}
+                    {detailVerdict === 'ragu' ? 'Status Ragu' : verdictLabel(detailVerdict)}
                   </h3>
                 </div>
 
@@ -456,7 +482,13 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
                         cx="50"
                         cy="50"
                         r="40"
-                        stroke={detailItem.rot ? '#C9421A' : '#1C6E3D'}
+                        stroke={
+                          detailVerdict === 'segar'
+                            ? '#1C6E3D'
+                            : detailVerdict === 'busuk'
+                            ? '#C9421A'
+                            : '#B45309'
+                        }
                         strokeWidth="10"
                         strokeDasharray="251.2"
                         strokeDashoffset={251.2 * (1 - detailItem.conf)}
@@ -501,7 +533,7 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
                       const isRotMatch =
                         (lbl.startsWith('rotten') && detailItem.rot === 1) ||
                         (lbl.startsWith('fresh') && detailItem.rot === 0);
-                      const isHighlighted = isTarget && isRotMatch;
+                      const isHighlighted = detailVerdict !== 'ragu' && isTarget && isRotMatch;
 
                       return (
                         <div key={lbl} className="flex items-center gap-3">
@@ -626,7 +658,7 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
                     onClick={() => {
                       sound.play('click');
                       setDetailItem(null);
-                      onNavigate('section-hero');
+                      onNavigate('/');
                     }}
                     className="flex-1 py-2 px-4 rounded-xl bg-black text-white hover:bg-black/85 font-passata text-xs uppercase font-bold transition-colors shadow-[2px_2px_0_#000000] flex items-center justify-center gap-1.5 cursor-pointer"
                   >

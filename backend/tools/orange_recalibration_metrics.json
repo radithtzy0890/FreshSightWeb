@@ -1,0 +1,85 @@
+{
+  "name": "init_lr3e-4_p05",
+  "folds": {
+    "original_test": {
+      "accuracy": 0.9869281045751634,
+      "macro_f1": 0.9804973966254066,
+      "counts": {
+        "fresh_apple": 235,
+        "rotten_apple": 29,
+        "fresh_banana": 313,
+        "rotten_banana": 115,
+        "fresh_orange": 176,
+        "rotten_orange": 50
+      }
+    },
+    "orange_green_orange": {
+      "accuracy": 0.9983333333333333,
+      "macro_f1": 0.49958298582151794,
+      "counts": {
+        "fresh_orange": 599,
+        "rotten_orange": 1
+      }
+    },
+    "orange_fresh_orange": {
+      "accuracy": 0.94,
+      "macro_f1": 0.3230240549828179,
+      "counts": {
+        "fresh_apple": 1,
+        "fresh_orange": 188,
+        "rotten_orange": 11
+      }
+    },
+    "orange_rotten_orange": {
+      "accuracy": 1.0,
+      "macro_f1": 1.0,
+      "counts": {
+        "rotten_orange": 200
+      }
+    },
+    "orange_blackspotted_orange": {
+      "accuracy": 1.0,
+      "macro_f1": 1.0,
+      "counts": {
+        "rotten_orange": 200
+      }
+    },
+    "orange_cankered_orange": {
+      "accuracy": 0.98,
+      "macro_f1": 0.494949494949495,
+      "counts": {
+        "fresh_orange": 4,
+        "rotten_orange": 196
+      }
+    },
+    "external_apple_fresh": {
+      "accuracy": 0.9856459330143541,
+      "macro_f1": 0.4963855421686747,
+      "counts": {
+        "fresh_apple": 206,
+        "rotten_apple": 3
+      }
+    },
+    "external_apple_rotten": {
+      "accuracy": 0.9856459330143541,
+      "macro_f1": 0.4963855421686747,
+      "counts": {
+        "fresh_apple": 3,
+        "rotten_apple": 206
+      }
+    },
+    "external_over ripe": {
+      "accuracy": 1.0,
+      "macro_f1": 1.0,
+      "counts": {
+        "rotten_banana": 239
+      }
+    }
+  },
+  "config": {
+    "name": "init_lr3e-4_p05",
+    "init": "existing",
+    "lr": 0.0003,
+    "power": 0.5
+  }
+}

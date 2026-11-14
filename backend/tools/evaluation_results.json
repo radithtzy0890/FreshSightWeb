@@ -1,0 +1,2586 @@
+{
+  "original_test": {
+    "full": {
+      "summary": {
+        "n": 918,
+        "accuracy": 0.9869281045751634,
+        "macro_f1": 0.9804973966254066,
+        "crop_used": 0,
+        "errors": 0,
+        "per_class": {
+          "fresh_apple": {
+            "precision": 0.9914893617021276,
+            "recall": 0.9831223628691983,
+            "f1": 0.9872881355932204,
+            "support": 237
+          },
+          "rotten_apple": {
+            "precision": 0.896551724137931,
+            "recall": 1.0,
+            "f1": 0.9454545454545454,
+            "support": 26
+          },
+          "fresh_banana": {
+            "precision": 0.9968051118210862,
+            "recall": 0.9873417721518988,
+            "f1": 0.9920508744038156,
+            "support": 316
+          },
+          "rotten_banana": {
+            "precision": 0.9739130434782609,
+            "recall": 0.9911504424778761,
+            "f1": 0.9824561403508772,
+            "support": 113
+          },
+          "fresh_orange": {
+            "precision": 0.9886363636363636,
+            "recall": 0.9830508474576272,
+            "f1": 0.9858356940509915,
+            "support": 177
+          },
+          "rotten_orange": {
+            "precision": 0.98,
+            "recall": 1.0,
+            "f1": 0.98989898989899,
+            "support": 49
+          }
+        }
+      },
+      "confusion_matrix": [
+        [
+          233,
+          3,
+          0,
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          26,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          312,
+          3,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          1,
+          112,
+          0,
+          0
+        ],
+        [
+          2,
+          0,
+          0,
+          0,
+          174,
+          1
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          49
+        ]
+      ]
+    },
+    "crop": {
+      "summary": {
+        "n": 918,
+        "accuracy": 0.9869281045751634,
+        "macro_f1": 0.9804973966254066,
+        "crop_used": 7,
+        "errors": 0,
+        "per_class": {
+          "fresh_apple": {
+            "precision": 0.9914893617021276,
+            "recall": 0.9831223628691983,
+            "f1": 0.9872881355932204,
+            "support": 237
+          },
+          "rotten_apple": {
+            "precision": 0.896551724137931,
+            "recall": 1.0,
+            "f1": 0.9454545454545454,
+            "support": 26
+          },
+          "fresh_banana": {
+            "precision": 0.9968051118210862,
+            "recall": 0.9873417721518988,
+            "f1": 0.9920508744038156,
+            "support": 316
+          },
+          "rotten_banana": {
+            "precision": 0.9739130434782609,
+            "recall": 0.9911504424778761,
+            "f1": 0.9824561403508772,
+            "support": 113
+          },
+          "fresh_orange": {
+            "precision": 0.9886363636363636,
+            "recall": 0.9830508474576272,
+            "f1": 0.9858356940509915,
+            "support": 177
+          },
+          "rotten_orange": {
+            "precision": 0.98,
+            "recall": 1.0,
+            "f1": 0.98989898989899,
+            "support": 49
+          }
+        }
+      },
+      "confusion_matrix": [
+        [
+          233,
+          3,
+          0,
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          26,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          312,
+          3,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          1,
+          112,
+          0,
+          0
+        ],
+        [
+          2,
+          0,
+          0,
+          0,
+          174,
+          1
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          49
+        ]
+      ]
+    }
+  },
+  "train_sample": {
+    "full": {
+      "summary": {
+        "n": 300,
+        "accuracy": 0.9933333333333333,
+        "macro_f1": 0.9933326665999932,
+        "crop_used": 0,
+        "errors": 0,
+        "per_class": {
+          "fresh_apple": {
+            "precision": 0.9803921568627451,
+            "recall": 1.0,
+            "f1": 0.99009900990099,
+            "support": 50
+          },
+          "rotten_apple": {
+            "precision": 1.0,
+            "recall": 0.98,
+            "f1": 0.98989898989899,
+            "support": 50
+          },
+          "fresh_banana": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "support": 50
+          },
+          "rotten_banana": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "support": 50
+          },
+          "fresh_orange": {
+            "precision": 1.0,
+            "recall": 0.98,
+            "f1": 0.98989898989899,
+            "support": 50
+          },
+          "rotten_orange": {
+            "precision": 0.9803921568627451,
+            "recall": 1.0,
+            "f1": 0.99009900990099,
+            "support": 50
+          }
+        }
+      },
+      "confusion_matrix": [
+        [
+          50,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          49,
+          0,
+          0,
+          0,
+          1
+        ],
+        [
+          0,
+          0,
+          50,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          50,
+          0,
+          0
+        ],
+        [
+          1,
+          0,
+          0,
+          0,
+          49,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          50
+        ]
+      ]
+    }
+  },
+  "afqc_test": {
+    "full": {
+      "summary": {
+        "n": 232,
+        "accuracy": 0.9396551724137931,
+        "macro_f1": 0.9395833333333333,
+        "crop_used": 0,
+        "errors": 0,
+        "per_class": {
+          "fresh_apple": {
+            "precision": 0.9722222222222222,
+            "recall": 0.9051724137931034,
+            "f1": 0.9375,
+            "support": 116
+          },
+          "rotten_apple": {
+            "precision": 0.9112903225806451,
+            "recall": 0.9741379310344828,
+            "f1": 0.9416666666666667,
+            "support": 116
+          },
+          "fresh_banana": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_banana": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "fresh_orange": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_orange": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          }
+        }
+      },
+      "confusion_matrix": [
+        [
+          105,
+          11,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          3,
+          113,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    },
+    "crop": {
+      "summary": {
+        "n": 232,
+        "accuracy": 0.8706896551724138,
+        "macro_f1": 0.5825396825396826,
+        "crop_used": 37,
+        "errors": 0,
+        "per_class": {
+          "fresh_apple": {
+            "precision": 0.9680851063829787,
+            "recall": 0.7844827586206896,
+            "f1": 0.8666666666666667,
+            "support": 116
+          },
+          "rotten_apple": {
+            "precision": 0.8161764705882353,
+            "recall": 0.9568965517241379,
+            "f1": 0.8809523809523809,
+            "support": 116
+          },
+          "fresh_banana": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_banana": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "fresh_orange": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_orange": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          }
+        }
+      },
+      "confusion_matrix": [
+        [
+          91,
+          25,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          3,
+          111,
+          0,
+          0,
+          2,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    }
+  },
+  "external_test_16": {
+    "full": {
+      "summary": {
+        "n": 16,
+        "accuracy": 0.75,
+        "macro_f1": 0.7527777777777778,
+        "crop_used": 0,
+        "errors": 0,
+        "per_class": {
+          "fresh_apple": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "support": 2
+          },
+          "rotten_apple": {
+            "precision": 0.6,
+            "recall": 1.0,
+            "f1": 0.7499999999999999,
+            "support": 3
+          },
+          "fresh_banana": {
+            "precision": 0.5,
+            "recall": 1.0,
+            "f1": 0.6666666666666666,
+            "support": 2
+          },
+          "rotten_banana": {
+            "precision": 1.0,
+            "recall": 0.3333333333333333,
+            "f1": 0.5,
+            "support": 3
+          },
+          "fresh_orange": {
+            "precision": 1.0,
+            "recall": 0.6666666666666666,
+            "f1": 0.8,
+            "support": 3
+          },
+          "rotten_orange": {
+            "precision": 1.0,
+            "recall": 0.6666666666666666,
+            "f1": 0.8,
+            "support": 3
+          }
+        }
+      },
+      "confusion_matrix": [
+        [
+          2,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          3,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          2,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          2,
+          0,
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          1,
+          0,
+          2,
+          0
+        ],
+        [
+          0,
+          0,
+          1,
+          0,
+          0,
+          2
+        ]
+      ]
+    },
+    "crop": {
+      "summary": {
+        "n": 16,
+        "accuracy": 0.75,
+        "macro_f1": 0.7527777777777778,
+        "crop_used": 0,
+        "errors": 0,
+        "per_class": {
+          "fresh_apple": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "support": 2
+          },
+          "rotten_apple": {
+            "precision": 0.6,
+            "recall": 1.0,
+            "f1": 0.7499999999999999,
+            "support": 3
+          },
+          "fresh_banana": {
+            "precision": 0.5,
+            "recall": 1.0,
+            "f1": 0.6666666666666666,
+            "support": 2
+          },
+          "rotten_banana": {
+            "precision": 1.0,
+            "recall": 0.3333333333333333,
+            "f1": 0.5,
+            "support": 3
+          },
+          "fresh_orange": {
+            "precision": 1.0,
+            "recall": 0.6666666666666666,
+            "f1": 0.8,
+            "support": 3
+          },
+          "rotten_orange": {
+            "precision": 1.0,
+            "recall": 0.6666666666666666,
+            "f1": 0.8,
+            "support": 3
+          }
+        }
+      },
+      "confusion_matrix": [
+        [
+          2,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          3,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          2,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          2,
+          0,
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          1,
+          0,
+          2,
+          0
+        ],
+        [
+          0,
+          0,
+          1,
+          0,
+          0,
+          2
+        ]
+      ]
+    }
+  },
+  "green_holdout": {
+    "full": {
+      "summary": {
+        "n": 600,
+        "accuracy": 0.9983333333333333,
+        "macro_f1": 0.49958298582151794,
+        "crop_used": 0,
+        "errors": 0,
+        "per_class": {
+          "fresh_apple": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_apple": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "fresh_banana": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_banana": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "fresh_orange": {
+            "precision": 1.0,
+            "recall": 0.9983333333333333,
+            "f1": 0.9991659716430359,
+            "support": 600
+          },
+          "rotten_orange": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          }
+        }
+      },
+      "confusion_matrix": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          599,
+          1
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    },
+    "crop": {
+      "summary": {
+        "n": 600,
+        "accuracy": 0.995,
+        "macro_f1": 0.33249791144527985,
+        "crop_used": 9,
+        "errors": 0,
+        "per_class": {
+          "fresh_apple": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_apple": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "fresh_banana": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_banana": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "fresh_orange": {
+            "precision": 1.0,
+            "recall": 0.995,
+            "f1": 0.9974937343358395,
+            "support": 600
+          },
+          "rotten_orange": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          }
+        }
+      },
+      "confusion_matrix": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          2,
+          0,
+          0,
+          0,
+          597,
+          1
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    }
+  },
+  "orange_fresh_orange": {
+    "full": {
+      "summary": {
+        "n": 200,
+        "accuracy": 0.94,
+        "macro_f1": 0.3230240549828179,
+        "crop_used": 0,
+        "errors": 0,
+        "per_class": {
+          "fresh_apple": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_apple": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "fresh_banana": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_banana": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "fresh_orange": {
+            "precision": 1.0,
+            "recall": 0.94,
+            "f1": 0.9690721649484536,
+            "support": 200
+          },
+          "rotten_orange": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          }
+        }
+      },
+      "confusion_matrix": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          0,
+          0,
+          0,
+          188,
+          11
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    },
+    "crop": {
+      "summary": {
+        "n": 200,
+        "accuracy": 0.935,
+        "macro_f1": 0.32213608957795004,
+        "crop_used": 1,
+        "errors": 0,
+        "per_class": {
+          "fresh_apple": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_apple": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "fresh_banana": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_banana": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "fresh_orange": {
+            "precision": 1.0,
+            "recall": 0.935,
+            "f1": 0.9664082687338501,
+            "support": 200
+          },
+          "rotten_orange": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          }
+        }
+      },
+      "confusion_matrix": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          2,
+          0,
+          0,
+          0,
+          187,
+          11
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    }
+  },
+  "orange_rotten_orange": {
+    "full": {
+      "summary": {
+        "n": 200,
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "crop_used": 0,
+        "errors": 0,
+        "per_class": {
+          "fresh_apple": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_apple": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "fresh_banana": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_banana": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "fresh_orange": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_orange": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "support": 200
+          }
+        }
+      },
+      "confusion_matrix": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          200
+        ]
+      ]
+    },
+    "crop": {
+      "summary": {
+        "n": 200,
+        "accuracy": 0.985,
+        "macro_f1": 0.4962216624685139,
+        "crop_used": 4,
+        "errors": 0,
+        "per_class": {
+          "fresh_apple": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_apple": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "fresh_banana": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_banana": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "fresh_orange": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_orange": {
+            "precision": 1.0,
+            "recall": 0.985,
+            "f1": 0.9924433249370278,
+            "support": 200
+          }
+        }
+      },
+      "confusion_matrix": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          3,
+          197
+        ]
+      ]
+    }
+  },
+  "orange_blackspotted_orange": {
+    "full": {
+      "summary": {
+        "n": 200,
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "crop_used": 0,
+        "errors": 0,
+        "per_class": {
+          "fresh_apple": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_apple": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "fresh_banana": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_banana": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "fresh_orange": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_orange": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "support": 200
+          }
+        }
+      },
+      "confusion_matrix": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          200
+        ]
+      ]
+    },
+    "crop": {
+      "summary": {
+        "n": 200,
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "crop_used": 0,
+        "errors": 0,
+        "per_class": {
+          "fresh_apple": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_apple": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "fresh_banana": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_banana": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "fresh_orange": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_orange": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "support": 200
+          }
+        }
+      },
+      "confusion_matrix": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          200
+        ]
+      ]
+    }
+  },
+  "orange_cankered_orange": {
+    "full": {
+      "summary": {
+        "n": 200,
+        "accuracy": 0.98,
+        "macro_f1": 0.494949494949495,
+        "crop_used": 0,
+        "errors": 0,
+        "per_class": {
+          "fresh_apple": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_apple": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "fresh_banana": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_banana": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "fresh_orange": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_orange": {
+            "precision": 1.0,
+            "recall": 0.98,
+            "f1": 0.98989898989899,
+            "support": 200
+          }
+        }
+      },
+      "confusion_matrix": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          4,
+          196
+        ]
+      ]
+    },
+    "crop": {
+      "summary": {
+        "n": 200,
+        "accuracy": 0.975,
+        "macro_f1": 0.3291139240506329,
+        "crop_used": 1,
+        "errors": 0,
+        "per_class": {
+          "fresh_apple": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_apple": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "fresh_banana": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_banana": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "fresh_orange": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_orange": {
+            "precision": 1.0,
+            "recall": 0.975,
+            "f1": 0.9873417721518987,
+            "support": 200
+          }
+        }
+      },
+      "confusion_matrix": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0,
+          0,
+          4,
+          195
+        ]
+      ]
+    }
+  },
+  "external_apple_fresh": {
+    "full": {
+      "summary": {
+        "n": 209,
+        "accuracy": 0.9808612440191388,
+        "macro_f1": 0.4951690821256039,
+        "crop_used": 0,
+        "errors": 0,
+        "per_class": {
+          "fresh_apple": {
+            "precision": 1.0,
+            "recall": 0.9808612440191388,
+            "f1": 0.9903381642512078,
+            "support": 209
+          },
+          "rotten_apple": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "fresh_banana": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_banana": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "fresh_orange": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_orange": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          }
+        }
+      },
+      "confusion_matrix": [
+        [
+          205,
+          4,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    },
+    "crop": {
+      "summary": {
+        "n": 209,
+        "accuracy": 0.9138755980861244,
+        "macro_f1": 0.3183333333333333,
+        "crop_used": 21,
+        "errors": 0,
+        "per_class": {
+          "fresh_apple": {
+            "precision": 1.0,
+            "recall": 0.9138755980861244,
+            "f1": 0.955,
+            "support": 209
+          },
+          "rotten_apple": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "fresh_banana": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_banana": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "fresh_orange": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_orange": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          }
+        }
+      },
+      "confusion_matrix": [
+        [
+          191,
+          16,
+          0,
+          0,
+          2,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    }
+  },
+  "external_apple_rotten": {
+    "full": {
+      "summary": {
+        "n": 209,
+        "accuracy": 0.9473684210526315,
+        "macro_f1": 0.32432432432432434,
+        "crop_used": 0,
+        "errors": 0,
+        "per_class": {
+          "fresh_apple": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_apple": {
+            "precision": 1.0,
+            "recall": 0.9473684210526315,
+            "f1": 0.972972972972973,
+            "support": 209
+          },
+          "fresh_banana": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_banana": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "fresh_orange": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_orange": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          }
+        }
+      },
+      "confusion_matrix": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          8,
+          198,
+          0,
+          0,
+          0,
+          3
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    },
+    "crop": {
+      "summary": {
+        "n": 209,
+        "accuracy": 0.9234449760765551,
+        "macro_f1": 0.19203980099502488,
+        "crop_used": 13,
+        "errors": 0,
+        "per_class": {
+          "fresh_apple": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_apple": {
+            "precision": 1.0,
+            "recall": 0.9234449760765551,
+            "f1": 0.9601990049751244,
+            "support": 209
+          },
+          "fresh_banana": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_banana": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "fresh_orange": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_orange": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          }
+        }
+      },
+      "confusion_matrix": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          9,
+          193,
+          1,
+          0,
+          3,
+          3
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    }
+  },
+  "external_over ripe": {
+    "full": {
+      "summary": {
+        "n": 239,
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "crop_used": 0,
+        "errors": 0,
+        "per_class": {
+          "fresh_apple": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_apple": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "fresh_banana": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_banana": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "support": 239
+          },
+          "fresh_orange": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_orange": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          }
+        }
+      },
+      "confusion_matrix": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          239,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    },
+    "crop": {
+      "summary": {
+        "n": 239,
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "crop_used": 0,
+        "errors": 0,
+        "per_class": {
+          "fresh_apple": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_apple": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "fresh_banana": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_banana": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "support": 239
+          },
+          "fresh_orange": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          },
+          "rotten_orange": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 0
+          }
+        }
+      },
+      "confusion_matrix": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          239,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    }
+  },
+  "user_items": [
+    {
+      "item": "apel fresh (1).jpg",
+      "expected": "fresh_apple",
+      "full": {
+        "predicted": "fresh_apple",
+        "confidence": 0.5545046925544739,
+        "crop_used": false
+      },
+      "crop": {
+        "predicted": "fresh_apple",
+        "confidence": 0.5545046925544739,
+        "crop_used": false
+      }
+    },
+    {
+      "item": "apel fresh (2).jpg",
+      "expected": "fresh_apple",
+      "full": {
+        "predicted": "fresh_apple",
+        "confidence": 0.6839801073074341,
+        "crop_used": false
+      },
+      "crop": {
+        "predicted": "fresh_apple",
+        "confidence": 0.6839801073074341,
+        "crop_used": false
+      }
+    },
+    {
+      "item": "apel busuk.jpg",
+      "expected": "rotten_apple",
+      "full": {
+        "predicted": "rotten_apple",
+        "confidence": 0.9398536086082458,
+        "crop_used": false
+      },
+      "crop": {
+        "predicted": "rotten_apple",
+        "confidence": 0.9398536086082458,
+        "crop_used": false
+      }
+    },
+    {
+      "item": "apel busuk (2).jpg",
+      "expected": "rotten_apple",
+      "full": {
+        "predicted": "rotten_apple",
+        "confidence": 0.9986900687217712,
+        "crop_used": false
+      },
+      "crop": {
+        "predicted": "rotten_apple",
+        "confidence": 0.9986900687217712,
+        "crop_used": false
+      }
+    },
+    {
+      "item": "jeruk fresh.jpeg",
+      "expected": "fresh_orange",
+      "full": {
+        "predicted": "rotten_orange",
+        "confidence": 0.4862818419933319,
+        "crop_used": false
+      },
+      "crop": {
+        "predicted": "rotten_orange",
+        "confidence": 0.4862818419933319,
+        "crop_used": false
+      }
+    },
+    {
+      "item": "jeruk fresh.webp",
+      "expected": "fresh_orange",
+      "full": {
+        "predicted": "fresh_orange",
+        "confidence": 0.9979729056358337,
+        "crop_used": false
+      },
+      "crop": {
+        "predicted": "fresh_orange",
+        "confidence": 0.9945424795150757,
+        "crop_used": true
+      }
+    }
+  ],
+  "demo_assets": [
+    {
+      "item": "apple_fresh.jpg",
+      "expected": "fresh_apple",
+      "full": {
+        "predicted": "fresh_apple",
+        "confidence": 0.9824987649917603,
+        "crop_used": false
+      },
+      "crop": {
+        "predicted": "fresh_apple",
+        "confidence": 0.9824987649917603,
+        "crop_used": false
+      }
+    },
+    {
+      "item": "apple_rotten.jpg",
+      "expected": "rotten_apple",
+      "full": {
+        "predicted": "rotten_apple",
+        "confidence": 0.9982947707176208,
+        "crop_used": false
+      },
+      "crop": {
+        "predicted": "rotten_apple",
+        "confidence": 0.9982947707176208,
+        "crop_used": false
+      }
+    },
+    {
+      "item": "banana_fresh.jpg",
+      "expected": "fresh_banana",
+      "full": {
+        "predicted": "fresh_banana",
+        "confidence": 0.993532657623291,
+        "crop_used": false
+      },
+      "crop": {
+        "predicted": "fresh_banana",
+        "confidence": 0.993532657623291,
+        "crop_used": false
+      }
+    },
+    {
+      "item": "banana_rotten.jpg",
+      "expected": "rotten_banana",
+      "full": {
+        "predicted": "rotten_banana",
+        "confidence": 0.9987128973007202,
+        "crop_used": false
+      },
+      "crop": {
+        "predicted": "rotten_banana",
+        "confidence": 0.9987128973007202,
+        "crop_used": false
+      }
+    },
+    {
+      "item": "orange_fresh.jpg",
+      "expected": "fresh_orange",
+      "full": {
+        "predicted": "fresh_orange",
+        "confidence": 0.999401330947876,
+        "crop_used": false
+      },
+      "crop": {
+        "predicted": "fresh_orange",
+        "confidence": 0.999401330947876,
+        "crop_used": false
+      }
+    },
+    {
+      "item": "orange_rotten.jpg",
+      "expected": "rotten_orange",
+      "full": {
+        "predicted": "fresh_apple",
+        "confidence": 0.6648733615875244,
+        "crop_used": false
+      },
+      "crop": {
+        "predicted": "fresh_apple",
+        "confidence": 0.6648733615875244,
+        "crop_used": false
+      }
+    }
+  ],
+  "synthetic_background": [
+    {
+      "item": "synthetic",
+      "expected": "fresh_apple",
+      "full": {
+        "predicted": "rotten_apple",
+        "confidence": 0.6977763772010803,
+        "crop_used": false
+      },
+      "crop": {
+        "predicted": "fresh_apple",
+        "confidence": 0.6159844398498535,
+        "crop_used": true
+      }
+    },
+    {
+      "item": "synthetic",
+      "expected": "rotten_apple",
+      "full": {
+        "predicted": "rotten_orange",
+        "confidence": 0.4798632264137268,
+        "crop_used": false
+      },
+      "crop": {
+        "predicted": "rotten_apple",
+        "confidence": 0.8710232377052307,
+        "crop_used": true
+      }
+    },
+    {
+      "item": "synthetic",
+      "expected": "fresh_banana",
+      "full": {
+        "predicted": "fresh_orange",
+        "confidence": 0.8872848153114319,
+        "crop_used": false
+      },
+      "crop": {
+        "predicted": "fresh_orange",
+        "confidence": 0.8872848153114319,
+        "crop_used": false
+      }
+    },
+    {
+      "item": "synthetic",
+      "expected": "fresh_orange",
+      "full": {
+        "predicted": "fresh_orange",
+        "confidence": 0.9377862811088562,
+        "crop_used": false
+      },
+      "crop": {
+        "predicted": "fresh_orange",
+        "confidence": 0.9377862811088562,
+        "crop_used": false
+      }
+    }
+  ],
+  "training_history": {
+    "stage1": {
+      "final_train_accuracy": 0.9843352437019348,
+      "final_val_accuracy": 0.9884454011917114
+    },
+    "stage2": {
+      "final_train_accuracy": 0.9988251328468324,
+      "final_val_accuracy": 0.99684876203537
+    },
+    "external_finetune": {
+      "final_train_accuracy": 0.9720094203948976,
+      "final_val_accuracy": 0.7664473652839661
+    }
+  },
+  "head_recalibration": {
+    "name": "init_lr3e-4_p05",
+    "folds": {
+      "original_test": {
+        "accuracy": 0.9869281045751634,
+        "macro_f1": 0.9804973966254066,
+        "counts": {
+          "fresh_apple": 235,
+          "rotten_apple": 29,
+          "fresh_banana": 313,
+          "rotten_banana": 115,
+          "fresh_orange": 176,
+          "rotten_orange": 50
+        }
+      },
+      "orange_green_orange": {
+        "accuracy": 0.9983333333333333,
+        "macro_f1": 0.49958298582151794,
+        "counts": {
+          "fresh_orange": 599,
+          "rotten_orange": 1
+        }
+      },
+      "orange_fresh_orange": {
+        "accuracy": 0.94,
+        "macro_f1": 0.3230240549828179,
+        "counts": {
+          "fresh_apple": 1,
+          "fresh_orange": 188,
+          "rotten_orange": 11
+        }
+      },
+      "orange_rotten_orange": {
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "counts": {
+          "rotten_orange": 200
+        }
+      },
+      "orange_blackspotted_orange": {
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "counts": {
+          "rotten_orange": 200
+        }
+      },
+      "orange_cankered_orange": {
+        "accuracy": 0.98,
+        "macro_f1": 0.494949494949495,
+        "counts": {
+          "fresh_orange": 4,
+          "rotten_orange": 196
+        }
+      },
+      "external_apple_fresh": {
+        "accuracy": 0.9856459330143541,
+        "macro_f1": 0.4963855421686747,
+        "counts": {
+          "fresh_apple": 206,
+          "rotten_apple": 3
+        }
+      },
+      "external_apple_rotten": {
+        "accuracy": 0.9856459330143541,
+        "macro_f1": 0.4963855421686747,
+        "counts": {
+          "fresh_apple": 3,
+          "rotten_apple": 206
+        }
+      },
+      "external_over ripe": {
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "counts": {
+          "rotten_banana": 239
+        }
+      }
+    },
+    "config": {
+      "name": "init_lr3e-4_p05",
+      "init": "existing",
+      "lr": 0.0003,
+      "power": 0.5
+    }
+  }
+}
