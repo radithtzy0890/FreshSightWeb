@@ -21,6 +21,12 @@
 /storage/*.key
 /storage/pail
 /vendor
+/backend/.venv
+/backend/**/__pycache__
+/backend/tools/features_cache.npz
+/apps/web/.env.local
+/apps/web/node_modules
+/apps/web/tsconfig.tsbuildinfo
 _ide_helper.php
 Homestead.json
 Homestead.yaml
