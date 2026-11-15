@@ -27,6 +27,7 @@
 /apps/web/.env.local
 /apps/web/node_modules
 /apps/web/tsconfig.tsbuildinfo
+/.commandcode
 _ide_helper.php
 Homestead.json
 Homestead.yaml
