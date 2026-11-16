@@ -160,6 +160,81 @@ body {
   animation: fruit-bob 3.2s ease-in-out infinite;
 }
 
+/* ── Planet Oño Rotating Circular Badge & Orbit Animations ── */
+@keyframes ono-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes ono-spin-reverse {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+.animate-ono-spin-slow {
+  animation: ono-spin 14s linear infinite;
+}
+
+.animate-ono-spin-reverse {
+  animation: ono-spin-reverse 18s linear infinite;
+}
+
+.animate-ono-spin-fast {
+  animation: ono-spin 6s linear infinite;
+}
+
+/* ── AI Laser Sweep & Specimen Pop Animations ── */
+@keyframes laser-sweep {
+  0% {
+    top: 8%;
+    opacity: 0.7;
+  }
+  50% {
+    top: 88%;
+    opacity: 1;
+  }
+  100% {
+    top: 8%;
+    opacity: 0.7;
+  }
+}
+
+.animate-laser-sweep {
+  animation: laser-sweep 2.2s ease-in-out infinite;
+}
+
+@keyframes specimen-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.9) translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-specimen-pop {
+  animation: specimen-pop 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ── Interactive Card Hover Lift (Planet Oño Tactile 3D) ── */
+.interactive-card {
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease;
+}
+.interactive-card:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 8px 8px 0 #000000;
+}
+
 /* ── Tactile Slider Buttons (Image 1 Bottom Right) ── */
 .btn-slider-square {
   width: 52px;
