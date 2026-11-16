@@ -330,14 +330,43 @@ export const Hero: React.FC<HeroProps> = ({
 
           {/* Left Column: Comic Explosion Sticker Badge & Input Triggers */}
           <div className="lg:col-span-3 flex flex-col items-center lg:items-start order-2 lg:order-1">
-            <div className="sticker-blast cursor-pointer" onClick={handleTriggerAnalysis}>
-              <p className="font-mono-tech text-xs text-black font-bold tracking-wider uppercase mb-1">
-                新鮮な果物
-              </p>
-              <h2 className="font-passata text-4xl sm:text-5xl text-[#EB3322] leading-none uppercase">
-                FRESH<br />BITE
-              </h2>
-              <div className="mt-2 text-xl text-black">✦</div>
+            <div
+              className="relative group cursor-pointer select-none"
+              onClick={handleTriggerAnalysis}
+              title="Klik stiker untuk analisis instan spesimen"
+            >
+              {/* Rotating Circular Text Stamp (Planet Oño Authentic Rotating Badge) */}
+              <div className="absolute -top-6 -right-6 sm:-right-8 w-24 h-24 sm:w-28 sm:h-28 z-20 pointer-events-none">
+                <div className="w-full h-full relative flex items-center justify-center animate-ono-spin-slow">
+                  <svg viewBox="0 0 100 100" className="w-full h-full overflow-visible">
+                    <path
+                      id="badgeCirclePath"
+                      d="M 50, 50 m -37, 0 a 37,37 0 1,1 74,0 a 37,37 0 1,1 -74,0"
+                      fill="none"
+                    />
+                    <text className="font-passata text-[9.5px] fill-black uppercase tracking-[0.24em] font-black">
+                      <textPath href="#badgeCirclePath" startOffset="0%">
+                        ✦ FRESH BITE ✦ 新鮮な果物 ✦ 100% ALAMI ✦
+                      </textPath>
+                    </text>
+                  </svg>
+                  {/* Center glowing badge star */}
+                  <div className="absolute w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#8DF947] border-2 border-black flex items-center justify-center shadow-[1px_1px_0_#000]">
+                    <span className="text-black text-xs font-bold animate-ono-twinkle">✦</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Main Comic Sticker Card with floating wobble */}
+              <div className="sticker-blast relative overflow-hidden">
+                <p className="font-mono-tech text-xs text-black font-bold tracking-wider uppercase mb-1">
+                  新鮮な果物
+                </p>
+                <h2 className="font-passata text-4xl sm:text-5xl text-[#EB3322] leading-none uppercase">
+                  FRESH<br />BITE
+                </h2>
+                <div className="mt-2 text-xl text-black inline-block animate-ono-spin-fast">✦</div>
+              </div>
             </div>
 
             {/* Action Buttons: Live Camera, Native Phone Camera, and Upload */}
@@ -453,11 +482,26 @@ export const Hero: React.FC<HeroProps> = ({
                     className="w-full h-full object-cover"
                   />
 
-                  {/* Viewfinder Target Reticle */}
-                  <div className="absolute inset-8 border border-dashed border-[#8DF947]/70 rounded-3xl pointer-events-none flex items-center justify-center">
-                    <span className="font-mono-tech text-[10px] text-[#8DF947] tracking-widest uppercase bg-black/50 px-2 py-0.5 rounded">
-                      Fokuskan Buah
+                  {/* Viewfinder Target Reticle with AI Laser Sweep */}
+                  <div className="absolute inset-5 sm:inset-7 border-2 border-dashed border-[#8DF947]/80 rounded-3xl pointer-events-none flex flex-col items-center justify-between p-3 overflow-hidden">
+                    {/* Top Markers */}
+                    <div className="w-full flex justify-between text-[#8DF947] text-[11px] font-mono font-bold select-none">
+                      <span>[ ✦ ]</span>
+                      <span>[ ✦ ]</span>
+                    </div>
+
+                    {/* Sweeping Laser Beam */}
+                    <div className="absolute left-2 right-2 h-0.5 bg-[#8DF947] shadow-[0_0_10px_#8DF947,0_0_18px_#8DF947] animate-laser-sweep pointer-events-none" />
+
+                    <span className="font-mono-tech text-[10px] text-[#8DF947] tracking-widest uppercase bg-black/70 px-2.5 py-1 rounded-full border border-[#8DF947]/50 shadow-sm backdrop-blur-xs select-none">
+                      SENSOR AI AKTIF
                     </span>
+
+                    {/* Bottom Markers */}
+                    <div className="w-full flex justify-between text-[#8DF947] text-[11px] font-mono font-bold select-none">
+                      <span>[ ✦ ]</span>
+                      <span>[ ✦ ]</span>
+                    </div>
                   </div>
 
                   {/* Switch Front/Rear Camera Button */}
@@ -512,21 +556,24 @@ export const Hero: React.FC<HeroProps> = ({
                   </button>
                 </div>
               ) : (
-                /* The Floating Specimen Plate (Photorealistic Fruit Display with Planet Oño Bob) */
-                <div className="relative z-10 flex flex-col items-center justify-center animate-fruit-bob">
+                /* The Floating Specimen Plate (Photorealistic Fruit Display with Planet Oño Bob & Pop Transition) */
+                <div
+                  key={`${specimen.name}-${specimen.status}`}
+                  className="relative z-10 flex flex-col items-center justify-center animate-fruit-bob animate-specimen-pop"
+                >
                   <div className="w-36 h-36 sm:w-40 sm:h-40 rounded-full overflow-hidden border-3 border-black shadow-[4px_4px_0_#000000] bg-white p-2.5 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                     <img
                       src={specimen.image}
                       alt={specimen.name}
-                      className="w-full h-full object-contain drop-shadow-md"
+                      className="w-full h-full object-contain drop-shadow-md select-none"
                     />
                   </div>
 
-                  <div className="mt-4 px-4 py-1 rounded-full bg-white border-2 border-black shadow-[2px_2px_0_#000000] font-passata text-sm text-black uppercase font-bold tracking-wider">
+                  <div className="mt-4 px-4 py-1 rounded-full bg-white border-2 border-black shadow-[2px_2px_0_#000000] font-passata text-sm text-black uppercase font-bold tracking-wider select-none">
                     {specimen.status === 'SEGAR' ? 'SEGAR' : 'BUSUK'} • {specimen.name}
                   </div>
 
-                  <p className="font-mono-tech text-[10px] text-white/90 mt-1 uppercase tracking-wider font-semibold">
+                  <p className="font-mono-tech text-[10px] text-white/90 mt-1 uppercase tracking-wider font-semibold select-none">
                     {specimen.variety}
                   </p>
                 </div>
@@ -569,7 +616,7 @@ export const Hero: React.FC<HeroProps> = ({
             ) : (
               <>
                 {/* Massive Display Headline: Refers specifically to fruit freshness & quality */}
-            <h1 className="font-passata text-5xl sm:text-6xl lg:text-[4.25rem] text-black text-shadow-3d-black uppercase tracking-tight font-bold leading-[0.95]">
+            <h1 className="font-passata text-4xl sm:text-5xl md:text-6xl lg:text-[3.75rem] xl:text-[4.25rem] text-black text-shadow-3d-black uppercase tracking-tight font-bold leading-[0.95] break-words">
               KESEGARAN<br />
               BUAH ALAMI.<br />
               TERUJI HINGGA<br />

@@ -38,7 +38,7 @@ export const AnalysisResultCard: React.FC<AnalysisResultCardProps> = ({
 
   return (
     <>
-      <div className="w-full bg-[#F7F2E5] text-black border-3 border-black shadow-[8px_8px_0_#000000] rounded-3xl p-5 sm:p-6 space-y-4">
+      <div className="w-full bg-[#F7F2E5] text-black border-3 border-black shadow-[8px_8px_0_#000000] rounded-3xl p-5 sm:p-6 space-y-4 animate-specimen-pop">
       <div className="flex items-center justify-between gap-3">
         <span className="font-mono-tech text-[10px] uppercase tracking-widest text-black/60">
           Hasil Analisis
