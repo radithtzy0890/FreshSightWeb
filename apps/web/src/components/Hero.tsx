@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Camera, Upload, ArrowLeft, ArrowRight, ChevronDown, RefreshCw, X, AlertCircle, Smartphone, FlipHorizontal } from 'lucide-react';
+import { Camera, Upload, ArrowLeft, ArrowRight, ChevronDown, RefreshCw, X, AlertCircle, FlipHorizontal } from 'lucide-react';
 import { AnalysisResult, DemoPreset } from '../types';
 import {
   runAnalysis,
@@ -388,40 +388,27 @@ export const Hero: React.FC<HeroProps> = ({
                 onChange={handleFileChange}
               />
 
-              {/* 1. Live WebRTC Camera */}
+              {/* 1. Ambil Foto (Camera) */}
               <button
                 onClick={() => (cameraActive ? stopCamera() : startCamera())}
                 onMouseEnter={() => sound.play('hover')}
                 className="w-full py-2.5 px-3 rounded-xl bg-[#8DF947] border-2 border-black font-passata text-sm uppercase shadow-[2px_2px_0_#000000] hover:bg-[#A3FF6B] flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-95 font-bold"
               >
                 <Camera size={16} strokeWidth={2.5} />
-                <span>{cameraActive ? 'Tutup Kamera' : 'Buka Kamera Web'}</span>
+                <span>{cameraActive ? 'Tutup Kamera' : 'Ambil Foto'}</span>
               </button>
 
-              {/* 2. Direct Camera Device (Mobile Native Instant) */}
-              <button
-                onClick={() => {
-                  sound.play('click');
-                  nativeCameraInputRef.current?.click();
-                }}
-                onMouseEnter={() => sound.play('hover')}
-                className="w-full py-2.5 px-3 rounded-xl bg-white border-2 border-black font-passata text-sm uppercase shadow-[2px_2px_0_#000000] hover:bg-[#FFF8E7] flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-95 font-bold text-black"
-              >
-                <Smartphone size={16} strokeWidth={2.5} />
-                <span>Foto Langsung HP</span>
-              </button>
-
-              {/* 3. Upload from Gallery */}
+              {/* 2. Unggah File */}
               <button
                 onClick={() => {
                   sound.play('click');
                   fileInputRef.current?.click();
                 }}
                 onMouseEnter={() => sound.play('hover')}
-                className="w-full py-2 px-3 rounded-xl bg-white/70 border-2 border-black font-passata text-xs uppercase shadow-[2px_2px_0_#000000] hover:bg-white flex items-center justify-center gap-1.5 cursor-pointer font-bold text-black"
+                className="w-full py-2.5 px-3 rounded-xl bg-white border-2 border-black font-passata text-sm uppercase shadow-[2px_2px_0_#000000] hover:bg-[#FFF8E7] flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-95 font-bold text-black"
               >
-                <Upload size={14} strokeWidth={2.5} />
-                <span>Unggah Galeri</span>
+                <Upload size={16} strokeWidth={2.5} />
+                <span>Unggah File</span>
               </button>
             </div>
 
