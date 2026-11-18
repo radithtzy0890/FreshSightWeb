@@ -160,6 +160,74 @@ body {
   animation: fruit-bob 3.2s ease-in-out infinite;
 }
 
+/* ── Dynamic Ambient Color Aura (Planet Oño Shifting Palette) ── */
+@keyframes aura-float {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1) rotate(0deg);
+    opacity: 0.55;
+  }
+  33% {
+    transform: translate(-45%, -52%) scale(1.15) rotate(120deg);
+    opacity: 0.75;
+  }
+  66% {
+    transform: translate(-55%, -48%) scale(0.92) rotate(240deg);
+    opacity: 0.6;
+  }
+}
+
+.animate-aura-float {
+  animation: aura-float 14s ease-in-out infinite;
+}
+
+/* ── Interactive Fruit Floating Physics & 3D Bobbing ── */
+@keyframes fruit-float-breathe {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg) scale(1);
+  }
+  25% {
+    transform: translateY(-8px) rotate(-1.5deg) scale(1.02);
+  }
+  50% {
+    transform: translateY(-3px) rotate(0.8deg) scale(1.01);
+  }
+  75% {
+    transform: translateY(-11px) rotate(1.8deg) scale(1.03);
+  }
+}
+
+.animate-fruit-float-breathe {
+  animation: fruit-float-breathe 4.5s ease-in-out infinite;
+}
+
+@keyframes shadow-breathe {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.35;
+  }
+  50% {
+    transform: scale(0.82);
+    opacity: 0.18;
+  }
+}
+
+.animate-shadow-breathe {
+  animation: shadow-breathe 4.5s ease-in-out infinite;
+}
+
+@keyframes orbit-float {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-7px) rotate(6deg);
+  }
+}
+
+.animate-orbit-float {
+  animation: orbit-float 3.6s ease-in-out infinite;
+}
+
 /* ── Planet Oño Rotating Circular Badge & Orbit Animations ── */
 @keyframes ono-spin {
   from {
