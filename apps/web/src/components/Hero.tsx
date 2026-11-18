@@ -62,6 +62,7 @@ const SPECIMENS = [
     emoji: '🍎',
     image: '/fruit/apple_fresh.jpg',
     color: '#1E6B3E',
+    auraColor: 'rgba(30, 107, 62, 0.45)',
     presetIdx: 0,
   },
   {
@@ -73,6 +74,7 @@ const SPECIMENS = [
     emoji: '🍎',
     image: '/fruit/apple_rotten.jpg',
     color: '#EB3322',
+    auraColor: 'rgba(235, 51, 34, 0.45)',
     presetIdx: 1,
   },
   {
@@ -83,7 +85,8 @@ const SPECIMENS = [
     blurb2: 'Epidermis kuning keemasan tanpa jejak penetrasi spora.',
     emoji: '🍌',
     image: '/fruit/banana_fresh.jpg',
-    color: '#1E6B3E',
+    color: '#6B38E8',
+    auraColor: 'rgba(107, 56, 232, 0.45)',
     presetIdx: 2,
   },
   {
@@ -94,7 +97,8 @@ const SPECIMENS = [
     blurb2: 'Bintik hitam meluas melampaui ambang batas kesegaran konsumsi.',
     emoji: '🍌',
     image: '/fruit/banana_rotten.jpg',
-    color: '#EB3322',
+    color: '#7B3818',
+    auraColor: 'rgba(123, 56, 24, 0.45)',
     presetIdx: 3,
   },
   {
@@ -105,7 +109,8 @@ const SPECIMENS = [
     blurb2: 'Vakuola sel kaya vitamin C dalam perlindungan kutin kokoh.',
     emoji: '🍊',
     image: '/fruit/orange_fresh.jpg',
-    color: '#1E6B3E',
+    color: '#0B6E6A',
+    auraColor: 'rgba(11, 110, 106, 0.45)',
     presetIdx: 4,
   },
   {
@@ -116,7 +121,8 @@ const SPECIMENS = [
     blurb2: 'Rasa dan aroma terdegradasi total oleh metabolisme fungal.',
     emoji: '🍊',
     image: '/fruit/orange_rotten.jpg',
-    color: '#EB3322',
+    color: '#3E2A47',
+    auraColor: 'rgba(62, 42, 71, 0.45)',
     presetIdx: 5,
   },
 ];
@@ -134,11 +140,25 @@ export const Hero: React.FC<HeroProps> = ({
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [uploadedPhoto, setUploadedPhoto] = useState<string | null>(result?.img || null);
   const [showHeatmap, setShowHeatmap] = useState(false);
+  const [mouseOffset, setMouseOffset] = useState({ x: 0, y: 0 });
 
+  const capsuleRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const nativeCameraInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!capsuleRef.current) return;
+    const rect = capsuleRef.current.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    setMouseOffset({ x, y });
+  };
+
+  const handleMouseLeave = () => {
+    setMouseOffset({ x: 0, y: 0 });
+  };
 
   const specimen = SPECIMENS[currentIdx];
 
@@ -440,10 +460,39 @@ export const Hero: React.FC<HeroProps> = ({
           </div>
 
           {/* Center Column: Upright Oval Capsule & Interactive 3D Specimen Pedestal */}
-          <div className="lg:col-span-4 flex flex-col items-center justify-center order-1 lg:order-2">
+          <div className="lg:col-span-4 flex flex-col items-center justify-center order-1 lg:order-2 relative py-4 sm:py-6">
+
+            {/* Shifting Ambient Color Aura (Planet Oño Morphing Palette) */}
             <div
-              className="relative w-[280px] sm:w-[320px] h-[380px] sm:h-[420px] rounded-[160px] border-3 border-black shadow-[8px_8px_0_#000000] flex flex-col items-center justify-center p-6 text-center cursor-pointer overflow-hidden transition-all group animate-ono-float"
-              style={{ backgroundColor: specimen.color }}
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] sm:w-[460px] h-[340px] sm:h-[460px] rounded-full blur-3xl pointer-events-none transition-all duration-700 ease-out z-0 animate-aura-float"
+              style={{
+                background: `radial-gradient(circle, ${specimen.auraColor} 0%, rgba(255,199,55,0) 70%)`,
+              }}
+            />
+
+            {/* Floating Orbit Accents */}
+            <div className="absolute -top-1 left-2 sm:-left-4 px-3 py-1 rounded-full bg-white border-2 border-black font-passata text-[10px] uppercase font-bold shadow-[2px_2px_0_#000] pointer-events-none animate-orbit-float z-20 hidden sm:flex items-center gap-1 select-none">
+              <span>✦</span>
+              <span>BIO-OPTIK</span>
+            </div>
+            <div className="absolute -bottom-2 right-2 sm:-right-4 px-3 py-1 rounded-full bg-[#8DF947] border-2 border-black font-passata text-[10px] uppercase font-bold text-black shadow-[2px_2px_0_#000] pointer-events-none animate-orbit-float z-20 hidden sm:flex items-center gap-1 select-none">
+              <span>100% ALAMI</span>
+              <span>✦</span>
+            </div>
+
+            <div
+              ref={capsuleRef}
+              onMouseMove={handleMouseMove}
+              onMouseLeave={handleMouseLeave}
+              className="relative w-[280px] sm:w-[320px] h-[380px] sm:h-[420px] rounded-[160px] border-3 border-black shadow-[8px_8px_0_#000000] flex flex-col items-center justify-center p-6 text-center cursor-pointer overflow-hidden group z-10 transition-colors duration-700 ease-out"
+              style={{
+                backgroundColor: specimen.color,
+                transform: `perspective(900px) rotateY(${mouseOffset.x * 12}deg) rotateX(${-mouseOffset.y * 12}deg)`,
+                transition:
+                  mouseOffset.x === 0
+                    ? 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.7s ease-out'
+                    : 'background-color 0.7s ease-out',
+              }}
               onClick={handleTriggerAnalysis}
             >
               {/* Camera Stream Overlay */}
@@ -543,24 +592,33 @@ export const Hero: React.FC<HeroProps> = ({
                   </button>
                 </div>
               ) : (
-                /* The Floating Specimen Plate (Photorealistic Fruit Display with Planet Oño Bob & Pop Transition) */
+                /* The Floating Specimen Plate (Photorealistic Fruit Display with Planet Oño 3D Bob & Breathe) */
                 <div
                   key={`${specimen.name}-${specimen.status}`}
-                  className="relative z-10 flex flex-col items-center justify-center animate-fruit-bob animate-specimen-pop"
+                  className="relative z-10 flex flex-col items-center justify-center animate-fruit-float-breathe animate-specimen-pop"
+                  style={{
+                    transform: `translate3d(${mouseOffset.x * 24}px, ${mouseOffset.y * 24}px, 0)`,
+                    transition: mouseOffset.x === 0 ? 'transform 0.4s ease-out' : 'none',
+                  }}
                 >
-                  <div className="w-36 h-36 sm:w-40 sm:h-40 rounded-full overflow-hidden border-3 border-black shadow-[4px_4px_0_#000000] bg-white p-2.5 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    <img
-                      src={specimen.image}
-                      alt={specimen.name}
-                      className="w-full h-full object-contain drop-shadow-md select-none"
-                    />
+                  {/* Floating White Pedestal Disc with 3D Shadow */}
+                  <div className="relative">
+                    <div className="w-36 h-36 sm:w-42 sm:h-42 rounded-full overflow-hidden border-3 border-black shadow-[4px_4px_0_#000000] bg-white p-2.5 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+                      <img
+                        src={specimen.image}
+                        alt={specimen.name}
+                        className="w-full h-full object-contain drop-shadow-md select-none transform transition-transform group-hover:scale-110"
+                      />
+                    </div>
+                    {/* Dynamic Drop Shadow below the fruit plate that squashes & stretches */}
+                    <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-28 sm:w-32 h-3 bg-black/35 rounded-full blur-[2px] pointer-events-none animate-shadow-breathe" />
                   </div>
 
-                  <div className="mt-4 px-4 py-1 rounded-full bg-white border-2 border-black shadow-[2px_2px_0_#000000] font-passata text-sm text-black uppercase font-bold tracking-wider select-none">
+                  <div className="mt-4 px-4 py-1 rounded-full bg-white border-2 border-black shadow-[2px_2px_0_#000000] font-passata text-sm text-black uppercase font-bold tracking-wider select-none hover:scale-105 transition-transform">
                     {specimen.status === 'SEGAR' ? 'SEGAR' : 'BUSUK'} • {specimen.name}
                   </div>
 
-                  <p className="font-mono-tech text-[10px] text-white/90 mt-1 uppercase tracking-wider font-semibold select-none">
+                  <p className="font-mono-tech text-[10px] text-white/90 mt-1 uppercase tracking-wider font-semibold select-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
                     {specimen.variety}
                   </p>
                 </div>
