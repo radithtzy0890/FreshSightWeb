@@ -3,10 +3,10 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, BarChart3, Cpu, Database, Layers, ShieldCheck, Zap } from 'lucide-react';
 
 const METRICS = [
-  { label: 'Test set asli', value: '98,69%', note: '918 citra, split bebas kebocoran' },
+  { label: 'Test set asli', value: '98,69%', note: '918 citra, Macro-F1 0,9805' },
   { label: 'Green orange', value: '99,83%', note: '600 holdout, kelas fresh_orange' },
-  { label: 'External apple', value: '98,56%', note: 'AFQC fresh + rotten' },
-  { label: 'Banana overripe', value: '100%', note: '239 citra eksternal' },
+  { label: 'AFQC Apple Holdout', value: '96,41%', note: 'Fresh 98,09% / Rotten 94,74% (418 citra)' },
+  { label: 'Banana overripe', value: '100%', note: '239 citra eksternal rotten_banana' },
 ];
 
 const CLASSES = [
@@ -19,14 +19,16 @@ const CLASSES = [
 ];
 
 const EVALUATION = [
-  ['Test asli (918 citra)', '98,69%'],
+  ['Test asli (918 citra, 6 kelas)', '98,69%'],
   ['Green orange (600 holdout)', '99,83%'],
-  ['Fresh orange eksternal', '94,00%'],
-  ['Rotten orange eksternal', '100%'],
-  ['Blackspot orange', '100%'],
-  ['Canker orange', '98,00%'],
-  ['AFQC apple fresh/rotten', '98,56%'],
-  ['Banana overripe', '100%'],
+  ['Fresh orange eksternal (200 holdout)', '94,00%'],
+  ['Rotten orange eksternal (200 holdout)', '100%'],
+  ['Blackspot orange (200 holdout)', '100%'],
+  ['Canker orange (200 holdout)', '98,00%'],
+  ['AFQC apple fresh holdout (209 citra)', '98,09%'],
+  ['AFQC apple rotten holdout (209 citra)', '94,74%'],
+  ['AFQC test independen (232 citra)', '93,97%'],
+  ['Banana overripe holdout (239 citra)', '100%'],
 ];
 
 const PIPELINE = [
@@ -105,7 +107,7 @@ export const ModelDataPage: React.FC = () => {
                 <div className="text-[10px] font-semibold text-black/60">parameter</div>
               </div>
               <div className="rounded-xl border border-black/15 bg-white p-2">
-                <div className="font-passata text-xl font-bold text-[#1E6B3E]">3,6 MB</div>
+                <div className="font-passata text-xl font-bold text-[#1E6B3E]">4,13 MB</div>
                 <div className="text-[10px] font-semibold text-black/60">ukuran .keras</div>
               </div>
               <div className="rounded-xl border border-black/15 bg-white p-2">

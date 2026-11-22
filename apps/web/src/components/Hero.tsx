@@ -10,6 +10,7 @@ import { sound } from '../services/soundEngine';
 import { AnalysisResultCard } from './AnalysisResultCard';
 
 const API_BASE = (import.meta.env.VITE_PREDICT_API_URL || '').replace(/\/$/, '');
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
 function imageToDataUrl(img: HTMLImageElement, maxDim: number, quality: number): string {
   const scale = Math.min(1, maxDim / Math.max(img.naturalWidth, img.naturalHeight));
@@ -25,21 +26,34 @@ function imageToDataUrl(img: HTMLImageElement, maxDim: number, quality: number):
 }
 
 async function analyzeFile(file: File) {
-  if (!API_BASE) {
-    return runAnalysis(file, 'browser');
+  if (file.size === 0) {
+    throw new Error('Berkas gambar kosong.');
+  }
+  if (file.size > MAX_UPLOAD_BYTES) {
+    throw new Error('Ukuran berkas gambar melebihi batas maksimum 10 MB.');
+  }
+  if (file.type && !file.type.startsWith('image/')) {
+    throw new Error('Berkas yang dipilih bukan format gambar yang didukung.');
   }
 
   const url = URL.createObjectURL(file);
 
   try {
     const img = await loadImageElement(url);
-    const result = await fetchPredictionFromApi(API_BASE, img, {
-      url,
-      name: file.name,
-    });
-    const photo = imageToDataUrl(img, 900, 0.82);
-    const thumb = imageToDataUrl(img, 320, 0.8);
-    return { ...result, img: photo, thumb };
+    try {
+      const result = await fetchPredictionFromApi(API_BASE, img, {
+        url,
+        name: file.name,
+      });
+      const photo = imageToDataUrl(img, 900, 0.82);
+      const thumb = imageToDataUrl(img, 320, 0.8);
+      return { ...result, img: photo, thumb };
+    } catch (apiErr) {
+      if (API_BASE) {
+        throw apiErr;
+      }
+      return runAnalysis(file, 'browser');
+    }
   } finally {
     URL.revokeObjectURL(url);
   }
@@ -177,7 +191,21 @@ export const Hero: React.FC<HeroProps> = ({
     setAnalyzing(true);
     try {
       const preset = presets[specimen.presetIdx];
-      const analysis = await runAnalysis(null, 'contoh', preset);
+      let analysis: AnalysisResult;
+      try {
+        const img = await loadImageElement(specimen.image);
+        const apiRes = await fetchPredictionFromApi(API_BASE, img, {
+          url: specimen.image,
+          name: specimen.image.split('/').pop() || 'demo.jpg',
+        });
+        analysis = {
+          ...apiRes,
+          img: specimen.image,
+          thumb: specimen.image,
+        };
+      } catch {
+        analysis = await runAnalysis(null, 'contoh', preset);
+      }
       setUploadedPhoto(analysis.img || null);
       setShowHeatmap(false);
       onAnalysisComplete(analysis);
@@ -199,11 +227,17 @@ export const Hero: React.FC<HeroProps> = ({
       setUploadedPhoto(analysis.img || null);
       setShowHeatmap(false);
       onAnalysisComplete(analysis);
-      showToast('Foto buah berhasil dianalisis dengan akurat.', 'success');
-    } catch {
-      showToast('Gagal memproses foto buah.', 'error');
+      if (analysis.verdict === 'tidak_terdeteksi') {
+        showToast('Objek buah tidak terdeteksi pada foto.', 'error');
+      } else {
+        showToast('Foto buah berhasil dianalisis.', 'success');
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Gagal memproses foto buah.';
+      showToast(msg, 'error');
     } finally {
       setAnalyzing(false);
+      e.target.value = '';
     }
   };
 

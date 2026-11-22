@@ -29,10 +29,10 @@ export const Navbar: React.FC = () => {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-[#FFC737] border-b-2 border-black transition-colors">
-      <div className="max-w-7xl mx-auto px-6 sm:px-10 h-18 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-4 sm:px-10 h-18 flex items-center justify-between gap-2">
 
         {/* Desktop Left Nav */}
-        <nav className="hidden md:flex items-center gap-6 lg:gap-8">
+        <nav className="hidden md:flex items-center gap-6 lg:gap-8" aria-label="Navigasi Utama">
           <NavLink
             to="/"
             end
@@ -77,7 +77,7 @@ export const Navbar: React.FC = () => {
           to="/"
           onMouseEnter={() => sound.play('hover')}
           onClick={() => sound.play('swoosh')}
-          className="flex flex-col items-center group cursor-pointer transition-transform hover:scale-105"
+          className="flex flex-col items-center group cursor-pointer transition-transform hover:scale-105 shrink-0"
         >
           <div className="flex items-center gap-1 font-passata text-2xl sm:text-3xl text-black tracking-tighter uppercase font-bold leading-none">
             <span>FRESH</span>
@@ -86,7 +86,7 @@ export const Navbar: React.FC = () => {
               <span className="absolute -top-1.5 right-1.5 text-xs text-white drop-shadow-[0_1px_1px_#000] animate-ono-twinkle">✦</span>
             </span>
           </div>
-          <span className="font-mono-tech text-[10px] text-black font-bold tracking-widest -mt-0.5">
+          <span className="font-mono-tech text-[9px] sm:text-[10px] text-black font-bold tracking-widest -mt-0.5">
             新鮮ちゃん
           </span>
         </Link>

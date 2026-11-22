@@ -115,9 +115,12 @@ def evaluate(head: keras.Model, name: str, folds: dict[str, tuple[np.ndarray, np
     metrics = {}
     for fold, (x, y) in folds.items():
         predictions = head.predict(x, batch_size=256, verbose=0).argmax(axis=1)
+        present_labels = [i for i in range(len(CLASSES)) if np.any(y == i)]
         metrics[fold] = {
             "accuracy": float(accuracy_score(y, predictions)),
-            "macro_f1": float(f1_score(y, predictions, average="macro")),
+            "macro_f1": float(
+                f1_score(y, predictions, labels=present_labels, average="macro", zero_division=0)
+            ),
             "counts": {CLASSES[i]: int((predictions == i).sum()) for i in range(len(CLASSES)) if (predictions == i).any()},
         }
     summary = " ".join(f"{fold}={value['accuracy']:.3f}" for fold, value in metrics.items())
@@ -258,26 +261,29 @@ def main() -> None:
             power=config["power"],
             existing_weights=existing_weights,
         )
-        metrics = evaluate(head, config["name"], folds)
-        metrics["config"] = config
-        original = metrics["folds"]["original_test"]["accuracy"]
-        external_apple_banana = np.mean([
-            metrics["folds"][fold]["accuracy"] for fold in metrics["folds"] if fold.startswith("external_")
-        ])
-        orange = np.mean([
-            metrics["folds"][fold]["accuracy"] for fold in metrics["folds"] if fold.startswith("orange_")
-        ])
-        if original < 0.975 or external_apple_banana < 0.98:
-            continue
-        score = 0.35 * original + 0.25 * external_apple_banana + 0.40 * orange
+        # Select best configuration purely on the validation set (prevent test-set leakage)
+        val_predictions = head.predict(x_valid, batch_size=256, verbose=0).argmax(axis=1)
+        val_accuracy = float(accuracy_score(y_valid, val_predictions))
+        val_macro_f1 = float(f1_score(y_valid, val_predictions, average="macro", zero_division=0))
+        score = 0.5 * val_accuracy + 0.5 * val_macro_f1
+        print(
+            f"Validation {config['name']}: val_acc={val_accuracy:.4f} val_macro_f1={val_macro_f1:.4f} score={score:.4f}",
+            flush=True,
+        )
         if best is None or score > best[0]:
-            best = (score, metrics, head)
+            best = (score, config, head, val_accuracy, val_macro_f1)
 
     if best is None:
-        print("No configuration met the accuracy constraints", flush=True)
+        print("No configuration could be trained", flush=True)
         return
 
-    _, metrics, head = best
+    _, best_config, head, val_accuracy, val_macro_f1 = best
+    metrics = evaluate(head, best_config["name"], folds)
+    metrics["config"] = best_config
+    metrics["validation"] = {
+        "accuracy": val_accuracy,
+        "macro_f1": val_macro_f1,
+    }
     print(f"Selected: {metrics['name']}", flush=True)
     model.get_layer("prediksi").set_weights(head.layers[0].get_weights())
     model.save(OUTPUT_PATH)

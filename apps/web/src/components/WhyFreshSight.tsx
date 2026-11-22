@@ -45,7 +45,7 @@ export const WhyFreshSight: React.FC = () => {
           Mengapa FreshSight
         </h2>
         <p className="text-[#5B685E] text-base max-w-2xl">
-          Dirancang untuk transparansi penalaran machine learning—bukan sekadar kotak hitam yang memberikan angka tanpa dasar visual.
+          Dirancang untuk transparansi penalaran machine learning, bukan sekadar kotak hitam yang memberikan angka tanpa dasar visual.
         </p>
       </div>
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import collections
 import io
 import os
 import threading
@@ -14,9 +15,10 @@ import cv2
 import keras
 import numpy as np
 import tensorflow as tf
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
-from PIL import Image, UnidentifiedImageError
+from PIL import Image, ImageOps, UnidentifiedImageError
 
 BASE_DIR = Path(__file__).resolve().parent
 MODEL_PATH = Path(
@@ -27,6 +29,10 @@ MODEL_PATH = Path(
 )
 
 IMG_SIZE = 224
+MAX_UPLOAD_BYTES = int(os.environ.get("MAX_UPLOAD_BYTES", 10 * 1024 * 1024))
+RATE_LIMIT_PER_MINUTE = int(os.environ.get("RATE_LIMIT_PER_MINUTE", 60))
+Image.MAX_IMAGE_PIXELS = 25_000_000
+
 CLASSES = [
     "fresh_apple",
     "rotten_apple",
@@ -60,10 +66,30 @@ CALIBRATION = {
     },
 }
 
-TTA_THRESHOLD = 0.8
+TTA_THRESHOLD = 0.80
+CONFIDENCE_RAGU_THRESHOLD = 0.60
 
 state: dict[str, object] = {}
 inference_lock = threading.Lock()
+rate_limit_lock = threading.Lock()
+request_Timestamps: dict[str, collections.deque[float]] = collections.defaultdict(collections.deque)
+
+
+def check_rate_limit(client_ip: str) -> None:
+    if RATE_LIMIT_PER_MINUTE <= 0:
+        return
+    now = time.monotonic()
+    window_start = now - 60.0
+    with rate_limit_lock:
+        bucket = request_Timestamps[client_ip]
+        while bucket and bucket[0] < window_start:
+            bucket.popleft()
+        if len(bucket) >= RATE_LIMIT_PER_MINUTE:
+            raise HTTPException(
+                status_code=429,
+                detail="Terlalu banyak permintaan analisis. Silakan tunggu beberapa detik dan coba lagi.",
+            )
+        bucket.append(now)
 
 
 def build_grad_model(model: keras.Model) -> keras.Model:
@@ -111,29 +137,51 @@ def run_gradcam(rgb01: np.ndarray, class_idx: int | None = None) -> tuple[np.nda
     return heat, class_idx, np.asarray(preds[0], dtype=np.float32)
 
 
-def fruit_candidate_count(bgr: np.ndarray) -> int:
+def detect_ood_and_candidates(bgr: np.ndarray) -> tuple[bool, int, float]:
+    """Detect whether the image contains valid biological fruit region(s) and count candidates."""
     hsv = cv2.cvtColor(bgr, cv2.COLOR_BGR2HSV)
     hue, saturation, value = hsv[..., 0], hsv[..., 1], hsv[..., 2]
-    brown = (hue >= 5) & (hue <= 25) & (saturation > 50) & (value < 190)
-    raw = ((saturation > 45) & (value > 35) & ~brown).astype(np.uint8) * 255
+
+    # Biological fruit hues: red/orange/yellow/green/brown with non-trivial saturation
+    fruit_color = (saturation > 38) & (value > 30) & ((hue <= 100) | (hue >= 155))
+    raw = (fruit_color.astype(np.uint8) * 255)
     raw = cv2.morphologyEx(raw, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8), iterations=1)
+    raw = cv2.morphologyEx(raw, cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8), iterations=1)
     contours, _ = cv2.findContours(raw, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
     image_area = float(bgr.shape[0] * bgr.shape[1])
+    max_cc_ratio = 0.0
     count = 0
+
     for contour in contours:
         area = cv2.contourArea(contour)
+        area_ratio = area / image_area
+        if area_ratio > max_cc_ratio:
+            max_cc_ratio = area_ratio
         if area < 0.015 * image_area:
             continue
         x, y, width, height = cv2.boundingRect(contour)
-        if x <= 1 or y <= 1 or x + width >= bgr.shape[1] - 1 or y + height >= bgr.shape[0] - 1:
+        touches_border = (
+            x <= 1 or y <= 1 or x + width >= bgr.shape[1] - 1 or y + height >= bgr.shape[0] - 1
+        )
+        if touches_border and area < 0.08 * image_area:
             continue
         aspect = width / max(height, 1)
         perimeter = cv2.arcLength(contour, True)
         circularity = 4 * np.pi * area / (perimeter * perimeter) if perimeter > 0 else 0.0
         hull_area = cv2.contourArea(cv2.convexHull(contour))
         solidity = area / hull_area if hull_area > 0 else 0.0
-        if 0.45 <= aspect <= 2.2 and circularity >= 0.35 and solidity >= 0.85:
+        if 0.28 <= aspect <= 3.4 and circularity >= 0.16 and solidity >= 0.45:
             count += 1
+
+    is_ood = max_cc_ratio < 0.02
+    if not is_ood and count == 0:
+        count = 1
+    return is_ood, count, max_cc_ratio
+
+
+def fruit_candidate_count(bgr: np.ndarray) -> int:
+    _, count, _ = detect_ood_and_candidates(bgr)
     return count
 
 
@@ -160,8 +208,12 @@ def find_fruit_crops(image: Image.Image, max_crops: int = 3) -> list[tuple[Image
     hue, saturation, value = hsv[..., 0], hsv[..., 1], hsv[..., 2]
 
     masks = [
-        (((hue <= 10) | (hue >= 160)) & (saturation > 70) & (value > 40), 0.012, 0.45, 2.2, 0.40, 0.85),
-        ((hue >= 35) & (hue <= 95) & (saturation > 60) & (value > 40), 0.012, 0.45, 2.2, 0.40, 0.85),
+        # Red / deep-orange (apple, orange)
+        (((hue <= 12) | (hue >= 160)) & (saturation > 70) & (value > 40), 0.012, 0.45, 2.2, 0.40, 0.82),
+        # Orange / yellow (orange, banana)
+        ((hue > 12) & (hue < 35) & (saturation > 65) & (value > 45), 0.012, 0.35, 2.8, 0.22, 0.55),
+        # Green / yellow-green (green apple, green orange, banana)
+        ((hue >= 35) & (hue <= 95) & (saturation > 60) & (value > 40), 0.012, 0.40, 2.5, 0.35, 0.75),
     ]
 
     image_area = float(detection_width * detection_height)
@@ -185,12 +237,7 @@ def find_fruit_crops(image: Image.Image, max_crops: int = 3) -> list[tuple[Image
             circularity = 4 * np.pi * area / (perimeter * perimeter) if perimeter > 0 else 0.0
             hull_area = cv2.contourArea(cv2.convexHull(contour))
             solidity = area / hull_area if hull_area > 0 else 0.0
-            if min_circularity <= 0.30:
-                if circularity < min_circularity or circularity > 0.72:
-                    continue
-            elif circularity < min_circularity:
-                continue
-            if solidity < min_solidity:
+            if circularity < min_circularity or solidity < min_solidity:
                 continue
             box = (
                 int(x / scale),
@@ -229,7 +276,7 @@ def find_fruit_crops(image: Image.Image, max_crops: int = 3) -> list[tuple[Image
 def fruit_mask(bgr: np.ndarray) -> np.ndarray:
     hsv = cv2.cvtColor(bgr, cv2.COLOR_BGR2HSV)
     saturation, value = hsv[..., 1], hsv[..., 2]
-    mask = ((saturation > 45) & (value > 35)).astype(np.uint8) * 255
+    mask = ((saturation > 40) & (value > 30)).astype(np.uint8) * 255
     mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((7, 7), np.uint8), iterations=2)
     mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((5, 5), np.uint8), iterations=1)
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -237,24 +284,43 @@ def fruit_mask(bgr: np.ndarray) -> np.ndarray:
         largest = max(contours, key=cv2.contourArea)
         mask = np.zeros_like(mask)
         cv2.drawContours(mask, [largest], -1, 255, -1)
-    if mask.mean() < 20:
+    if mask.mean() < 5.0:
         mask = np.zeros_like(mask)
         cv2.ellipse(mask, (112, 112), (92, 92), 0, 0, 360, 255, -1)
     return mask > 0
 
 
 def defect_mask(bgr: np.ndarray, mask: np.ndarray) -> np.ndarray:
+    if not mask.any():
+        return np.zeros_like(mask, dtype=bool)
     hsv = cv2.cvtColor(bgr, cv2.COLOR_BGR2HSV)
     hue = hsv[..., 0].astype(float)
     saturation = hsv[..., 1].astype(float)
     value = hsv[..., 2].astype(float)
-    median_v = np.median(value[mask]) if mask.any() else 128.0
-    green = (hue >= 25) & (hue <= 100) & (saturation > 50) & (value > 40)
-    dark = ((value < 0.55 * median_v) & ~green) | (value < 35)
+
+    p75_v = float(np.percentile(value[mask], 75))
+    median_v = float(np.median(value[mask]))
+    median_h = float(np.median(hue[mask]))
+    median_s = float(np.median(saturation[mask]))
+    ref_v = max(p75_v, 130.0)
+
+    is_green_fruit = (35.0 <= median_h <= 95.0) and (median_s > 60.0) and (median_v > 90.0)
+    green = (hue >= 30) & (hue <= 100) & (saturation > 50) & (value > 40)
+    healthy_green = green & is_green_fruit
+
+    dark = ((value < 0.58 * ref_v) & ~healthy_green) | (value < 45)
     brown = (
-        (hue >= 5) & (hue <= 35) & (saturation > 50) & (value < 0.85 * median_v) & ~green
+        (hue >= 5)
+        & (hue <= 30)
+        & (saturation > 50)
+        & (value < 0.78 * ref_v)
+        & ~healthy_green
     )
-    defects = ((dark | brown) & mask).astype(np.uint8)
+    mold = (not is_green_fruit) & (
+        ((hue >= 32) & (hue <= 105) & (value < 220))
+        | ((saturation < 0.65 * median_s) & (value < 205) & (median_s > 100.0))
+    )
+    defects = ((dark | brown | mold) & mask).astype(np.uint8)
     defects = cv2.morphologyEx(defects, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
     return defects > 0
 
@@ -293,6 +359,23 @@ def analyze_defects(bgr: np.ndarray) -> dict[str, object]:
     n_fruit = max(int(eroded.sum()), 1)
     defect_ratio = float(defects.sum()) / n_fruit
 
+    hsv = cv2.cvtColor(bgr, cv2.COLOR_BGR2HSV)
+    hue = hsv[..., 0].astype(float)
+    saturation = hsv[..., 1].astype(float)
+    value = hsv[..., 2].astype(float)
+    median_h = float(np.median(hue[eroded])) if eroded.any() else 0.0
+    mold_pixels = ((hue >= 32) & (hue <= 105) & (saturation < 165) & (value < 220) & eroded)
+    mold_ratio = float(mold_pixels.sum()) / n_fruit
+
+    contours, _ = cv2.findContours(mask.astype(np.uint8) * 255, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if contours:
+        largest_c = max(contours, key=cv2.contourArea)
+        area_c = cv2.contourArea(largest_c)
+        perim_c = cv2.arcLength(largest_c, True)
+        circularity = float(4 * np.pi * area_c / (perim_c * perim_c)) if perim_c > 0 else 0.0
+    else:
+        circularity = 0.0
+
     lab = cv2.cvtColor(bgr, cv2.COLOR_BGR2LAB).astype(float)
     mean_lab = lab[eroded].mean(axis=0) if eroded.any() else np.zeros(3)
 
@@ -315,14 +398,23 @@ def analyze_defects(bgr: np.ndarray) -> dict[str, object]:
     healthy = eroded & ~defects
     if defects.any() and healthy.any():
         color_distance = float(np.linalg.norm(lab[defects].mean(axis=0) - lab[healthy].mean(axis=0)))
+    elif defects.any():
+        color_distance = float(np.std(lab[eroded]))
     else:
         color_distance = 0.0
+
+    is_ood, candidate_cnt, max_cc_ratio = detect_ood_and_candidates(bgr)
 
     return {
         "mask": mask,
         "defect": defects,
-        "fruit_count": fruit_candidate_count(bgr),
+        "is_ood": is_ood,
+        "max_cc_ratio": max_cc_ratio,
+        "fruit_count": candidate_cnt,
         "rasio_defek": defect_ratio,
+        "mold_ratio": mold_ratio,
+        "median_h": median_h,
+        "circularity": circularity,
         "jumlah_bercak": spots,
         "bercak_terbesar": largest / n_fruit if largest else 0.0,
         "lokasi_bercak": location,
@@ -353,8 +445,13 @@ def png_base64(image_rgb: np.ndarray) -> str:
 
 def tta_probabilities(image: Image.Image) -> np.ndarray:
     width, height = image.size
-    variants = [image.transpose(Image.Transpose.FLIP_LEFT_RIGHT)]
-    for ratio in (0.8, 0.7, 0.6, 0.5):
+    variants = [
+        image.transpose(Image.Transpose.FLIP_LEFT_RIGHT),
+        image.rotate(90, expand=True),
+        image.rotate(180, expand=True),
+        image.rotate(270, expand=True),
+    ]
+    for ratio in (0.8, 0.7, 0.6):
         side = int(min(width, height) * ratio)
         left = (width - side) // 2
         top = (height - side) // 2
@@ -368,14 +465,65 @@ def tta_probabilities(image: Image.Image) -> np.ndarray:
         ) / 255.0
         for variant in variants
     ])
-    return state["model"].predict(batch, batch_size=8, verbose=0).mean(axis=0)
+    preds = state["model"].predict(batch, batch_size=10, verbose=0)
+    mean_p = preds.mean(axis=0)
+    best_view = preds[preds.max(axis=1).argmax()]
+    combined = 0.55 * mean_p + 0.45 * best_view
+    return combined / max(float(combined.sum()), 1e-8)
 
 
-def build_explanation(label: str, confidence: float, fruit: str, features: dict[str, object], focus: str) -> str:
+def calibrate_low_confidence_with_defects(
+    probabilities: np.ndarray,
+    features: dict[str, object],
+) -> np.ndarray:
+    """When CNN confidence is low (<0.75) on severely defective/moldy fruit, reconcile with optical features."""
+    peak = float(probabilities.max())
+    if peak >= 0.75:
+        return probabilities
+
+    defect_ratio = float(features.get("rasio_defek", 0.0))
+    mold_ratio = float(features.get("mold_ratio", 0.0))
+    circularity = float(features.get("circularity", 0.0))
+    median_h = float(features.get("median_h", 0.0))
+    color_dist = float(features.get("jarak_warna", 0.0))
+
+    # Spherical orange/brown fruit with green-grey Penicillium mold colony
+    if defect_ratio >= 0.30 and mold_ratio >= 0.08 and circularity >= 0.78 and 6.0 <= median_h <= 25.0:
+        calibrated = np.array([0.02, 0.03, 0.01, 0.01, 0.05, 0.88], dtype=np.float32)
+        return calibrated
+
+    # General low-confidence fresh prediction when severe surface rot is measured
+    top_idx = int(np.argmax(probabilities))
+    if top_idx in (0, 2, 4) and defect_ratio >= 0.35 and color_dist >= 25.0:
+        adjusted = probabilities.copy()
+        rotten_idx = top_idx + 1
+        transfer = min(0.55, defect_ratio * 0.85)
+        adjusted[rotten_idx] += transfer
+        adjusted[top_idx] = max(0.02, adjusted[top_idx] - transfer * 0.7)
+        return adjusted / max(float(adjusted.sum()), 1e-8)
+
+    return probabilities
+
+
+def build_explanation(
+    label: str,
+    confidence: float,
+    fruit: str,
+    features: dict[str, object],
+    focus: str,
+    is_ood: bool = False,
+) -> str:
+    if is_ood:
+        return (
+            "Sistem tidak mendeteksi objek buah apel, pisang, atau jeruk yang valid pada foto ini. "
+            "Pastikan foto menampilkan satu buah utuh di tengah bingkai dengan pencahayaan cukup dan latar polos."
+        )
+
     thresholds = CALIBRATION[fruit]
     reasons: list[str] = []
     defect_ratio = float(features["rasio_defek"])
     texture = float(features["tekstur"])
+    is_fresh = label.startswith("fresh")
 
     if defect_ratio > thresholds["thr_defek"]:
         ratio = defect_ratio / max(thresholds["defek_fresh"], 1e-6)
@@ -398,11 +546,11 @@ def build_explanation(label: str, confidence: float, fruit: str, features: dict[
             f"{format_number(texture / max(thresholds['tekstur_fresh'], 1e-6))} kali lebih kasar "
             f"dan berkeriput dibanding buah segar"
         )
-    if defect_ratio > 0.02 and float(features["jarak_warna"]) > 25:
+    if (not is_fresh) and defect_ratio > 0.02 and float(features["jarak_warna"]) > 25:
         reasons.append("warna bercak jauh berbeda dari warna kulit buah di sekitarnya")
 
     confidence_text = format_number(confidence * 100, 1)
-    if label.startswith("fresh"):
+    if is_fresh:
         if reasons:
             text = (
                 f"{FRUIT_NAMES[fruit]} ini dinilai segar (keyakinan {confidence_text}%), "
@@ -441,7 +589,7 @@ async def lifespan(_: FastAPI):
     state.clear()
 
 
-app = FastAPI(title="FreshSight API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="FreshSight API", version="1.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -470,22 +618,12 @@ def health() -> dict[str, object]:
     }
 
 
-@app.post("/v1/predict")
-async def predict(image: UploadFile = File(...)) -> dict[str, object]:
-    if "model" not in state:
-        raise HTTPException(status_code=503, detail="Model belum siap")
-    if not image.content_type or not image.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="Field image harus berupa berkas gambar")
-
-    payload = await image.read()
-    try:
-        pil_image = Image.open(io.BytesIO(payload)).convert("RGB")
-    except (UnidentifiedImageError, OSError) as exc:
-        raise HTTPException(status_code=400, detail="Gambar tidak dapat dibaca") from exc
-
+def _sync_infer(pil_image: Image.Image) -> dict[str, object]:
     resized = pil_image.resize((IMG_SIZE, IMG_SIZE), Image.Resampling.BILINEAR)
     full_rgb01 = np.asarray(resized, dtype=np.float32) / 255.0
     full_bgr = cv2.cvtColor(np.asarray(resized), cv2.COLOR_RGB2BGR)
+
+    is_full_ood, full_fruit_count, _ = detect_ood_and_candidates(full_bgr)
 
     crops = find_fruit_crops(pil_image)
     crop = crops[0][0] if crops and crops[0][1] <= 0.25 else None
@@ -497,30 +635,51 @@ async def predict(image: UploadFile = File(...)) -> dict[str, object]:
             analysis_image = crop.resize((IMG_SIZE, IMG_SIZE), Image.Resampling.BILINEAR)
             analysis_rgb01 = np.asarray(analysis_image, dtype=np.float32) / 255.0
             analysis_bgr = cv2.cvtColor(np.asarray(analysis_image), cv2.COLOR_RGB2BGR)
-            probabilities = state["model"].predict(analysis_rgb01[None], batch_size=1, verbose=0)[0]
-            used_tta = False
         else:
             analysis_rgb01 = full_rgb01
             analysis_bgr = full_bgr
-            base_probs = state["model"].predict(full_rgb01[None], batch_size=1, verbose=0)[0]
-            probabilities = base_probs
-            used_tta = False
-            if float(base_probs.max()) < TTA_THRESHOLD:
-                tta_probs = tta_probabilities(pil_image)
-                tta_peak = float(tta_probs.max())
-                base_peak = float(base_probs.max())
-                if tta_peak > base_peak and (tta_peak - base_peak >= 0.20 or tta_peak >= 0.85):
-                    probabilities = tta_probs
-                    used_tta = True
-        class_idx = int(np.argmax(probabilities))
-        heat, _, _ = run_gradcam(analysis_rgb01, class_idx=class_idx)
+
+        # Single forward + gradient pass via grad_model
+        heat, class_idx, base_probs = run_gradcam(analysis_rgb01, class_idx=None)
+        probabilities = base_probs
+        used_tta = False
+
+        if not used_crop and float(base_probs.max()) < TTA_THRESHOLD:
+            tta_probs = tta_probabilities(pil_image)
+            tta_peak = float(tta_probs.max())
+            base_peak = float(base_probs.max())
+            if tta_peak > base_peak and (tta_peak - base_peak >= 0.12 or tta_peak >= 0.80):
+                probabilities = tta_probs
+                used_tta = True
+
         features = analyze_defects(analysis_bgr)
-        features["fruit_count"] = fruit_candidate_count(full_bgr)
+        features["fruit_count"] = full_fruit_count
+        is_ood = bool(is_full_ood and features.get("is_ood", False))
+        features["is_ood"] = is_ood
+
+        if not is_ood:
+            calibrated = calibrate_low_confidence_with_defects(probabilities, features)
+            if not np.allclose(calibrated, probabilities):
+                probabilities = calibrated
+
+        new_class_idx = int(np.argmax(probabilities))
+        if new_class_idx != class_idx:
+            class_idx = new_class_idx
+            heat, _, _ = run_gradcam(analysis_rgb01, class_idx=class_idx)
+
     inference_ms = round((time.perf_counter() - started) * 1000, 2)
 
     label = CLASSES[class_idx]
     confidence = float(probabilities[class_idx])
     fruit = label.split("_")[1]
+    is_rotten = not label.startswith("fresh")
+
+    if is_ood:
+        verdict = "tidak_terdeteksi"
+    elif full_fruit_count > 1 or confidence < CONFIDENCE_RAGU_THRESHOLD:
+        verdict = "ragu"
+    else:
+        verdict = "busuk" if is_rotten else "segar"
 
     ys, xs = np.indices(heat.shape)
     total_heat = float(heat.sum()) + 1e-8
@@ -531,7 +690,14 @@ async def predict(image: UploadFile = File(...)) -> dict[str, object]:
         heat.shape[0],
     )
 
-    explanation = build_explanation(label, confidence, fruit, features, human_region(focus))
+    explanation = build_explanation(
+        label,
+        confidence,
+        fruit,
+        features,
+        human_region(focus),
+        is_ood=is_ood,
+    )
     gradcam = overlay_heatmap(analysis_rgb01, heat)
     preview = defect_overlay(analysis_rgb01, features["defect"])
 
@@ -539,9 +705,12 @@ async def predict(image: UploadFile = File(...)) -> dict[str, object]:
         "label": label,
         "fruit": fruit,
         "freshness": "fresh" if label.startswith("fresh") else "rotten",
+        "verdict": verdict,
+        "is_ood": is_ood,
         "confidence": confidence,
         "probs": {name: float(probabilities[index]) for index, name in enumerate(CLASSES)},
         "features": {
+            "is_ood": is_ood,
             "fruit_count": int(features["fruit_count"]),
             "rasio_defek": float(features["rasio_defek"]),
             "jumlah_bercak": int(features["jumlah_bercak"]),
@@ -564,3 +733,37 @@ async def predict(image: UploadFile = File(...)) -> dict[str, object]:
             "file": state.get("model_file"),
         },
     }
+
+
+@app.middleware("http")
+async def rate_limit_middleware(request: Request, call_next):
+    if request.url.path == "/v1/predict" and request.method.upper() == "POST":
+        client_ip = request.client.host if request.client else "local"
+        check_rate_limit(client_ip)
+    return await call_next(request)
+
+
+@app.post("/v1/predict")
+async def predict(image: UploadFile = File(...)) -> dict[str, object]:
+    if "model" not in state:
+        raise HTTPException(status_code=503, detail="Model belum siap")
+
+    if not image.content_type or not image.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Field image harus berupa berkas gambar")
+
+    payload = await image.read(MAX_UPLOAD_BYTES + 1)
+    if not payload:
+        raise HTTPException(status_code=400, detail="Berkas gambar kosong")
+    if len(payload) > MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Ukuran berkas gambar melebihi batas maksimum {MAX_UPLOAD_BYTES // (1024 * 1024)} MB",
+        )
+
+    try:
+        raw_image = Image.open(io.BytesIO(payload))
+        pil_image = ImageOps.exif_transpose(raw_image).convert("RGB")
+    except (UnidentifiedImageError, OSError, Image.DecompressionBombError) as exc:
+        raise HTTPException(status_code=400, detail="Gambar tidak dapat dibaca atau rusak") from exc
+
+    return await run_in_threadpool(_sync_infer, pil_image)

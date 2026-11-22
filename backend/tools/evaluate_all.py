@@ -81,10 +81,28 @@ def summarize(name: str, labels, predictions, used_crop: int, errors: int):
         output_dict=True,
         zero_division=0,
     )
+    present_labels = [index for index in range(len(CLASSES)) if np.any(labels == index)]
     summary = {
         "n": int(len(labels)),
         "accuracy": float(accuracy_score(labels, predictions)),
-        "macro_f1": float(f1_score(labels, predictions, average="macro")),
+        "macro_f1": float(
+            f1_score(
+                labels,
+                predictions,
+                labels=present_labels,
+                average="macro",
+                zero_division=0,
+            )
+        ),
+        "macro_f1_all6": float(
+            f1_score(
+                labels,
+                predictions,
+                labels=list(range(len(CLASSES))),
+                average="macro",
+                zero_division=0,
+            )
+        ),
         "crop_used": int(used_crop),
         "errors": int(errors),
         "per_class": {

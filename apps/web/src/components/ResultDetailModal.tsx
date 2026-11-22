@@ -1,8 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Download, X } from 'lucide-react';
-import { AnalysisResult, Verdict, getVerdict } from '../types';
-import { FRUIT_NAMES, MODEL_LABELS, formatPercent, getExplanationText } from '../services/cvEngine';
+import { AnalysisResult, Verdict } from '../types';
+import {
+  FRUIT_NAMES,
+  MODEL_LABELS,
+  formatPercent,
+  getDiagnosisTitle,
+  getExplanationText,
+  resolveVerdict,
+} from '../services/cvEngine';
 import { sound } from '../services/soundEngine';
 
 interface ResultDetailModalProps {
@@ -13,19 +20,27 @@ interface ResultDetailModalProps {
 type ViewMode = 'asli' | 'cam' | 'mask';
 
 const verdictLabel = (verdict: Verdict): string =>
-  verdict === 'segar' ? 'Segar' : verdict === 'busuk' ? 'Busuk' : 'Status Ragu';
+  verdict === 'segar'
+    ? 'Segar'
+    : verdict === 'busuk'
+    ? 'Busuk'
+    : verdict === 'tidak_terdeteksi'
+    ? 'Tidak Terdeteksi'
+    : 'Status Ragu';
 
 const verdictClass = (verdict: Verdict): string =>
   verdict === 'segar'
     ? 'bg-[#8DF947] text-black'
     : verdict === 'busuk'
     ? 'bg-[#EB3322] text-white'
+    : verdict === 'tidak_terdeteksi'
+    ? 'bg-slate-700 text-white'
     : 'bg-[#FFC737] text-black';
 
 export const ResultDetailModal: React.FC<ResultDetailModalProps> = ({ result, onClose }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('asli');
   const multipleFruits = (result.fruitCount ?? 1) > 1;
-  const verdict = multipleFruits ? 'ragu' : result.verdict ?? getVerdict(result.conf, result.rot);
+  const verdict = resolveVerdict(result);
   const fruitName = FRUIT_NAMES[result.fruit];
   const explanation = getExplanationText(result);
 
@@ -46,12 +61,17 @@ export const ResultDetailModal: React.FC<ResultDetailModalProps> = ({ result, on
       ? result.msk
       : result.img || result.thumb || '';
 
+  const formatSafeDate = (dateStr: string): string => {
+    const parsed = new Date(dateStr);
+    return Number.isNaN(parsed.getTime()) ? dateStr : parsed.toLocaleString('id-ID');
+  };
+
   const downloadSummary = () => {
     sound.play('click');
     const lines = [
-      'FreshSight — Ringkasan Analisis',
-      `Tanggal: ${new Date(result.date).toLocaleString('id-ID')}`,
-      `Buah: ${fruitName}`,
+      'FreshSight - Ringkasan Analisis',
+      `Tanggal: ${formatSafeDate(result.date)}`,
+      `Buah: ${verdict === 'tidak_terdeteksi' ? 'Tidak Terdeteksi' : fruitName}`,
       `Status: ${verdictLabel(verdict)}`,
       `Keyakinan: ${formatPercent(result.conf)}`,
       `Rasio area cacat: ${result.rasio || 0}%`,
@@ -60,6 +80,7 @@ export const ResultDetailModal: React.FC<ResultDetailModalProps> = ({ result, on
       `Jarak warna: ${result.jw ?? 0}`,
       `Tekstur: ${result.tk ?? 0}`,
       `Model: ${result.model}`,
+      ...(result.userCorrection ? [`Koreksi pengguna: ${result.userCorrection}`] : []),
       '',
       'Penjelasan:',
       explanation,
@@ -155,7 +176,7 @@ export const ResultDetailModal: React.FC<ResultDetailModalProps> = ({ result, on
                 {verdictLabel(verdict)}
               </span>
               <h2 className="font-passata text-3xl sm:text-4xl text-black font-bold uppercase tracking-tight">
-                {fruitName} {verdictLabel(verdict)}
+                {getDiagnosisTitle(result)}
               </h2>
               <p className="font-mono-tech text-xs text-black/60 mt-1">
                 Keyakinan {formatPercent(result.conf)} · {result.ms ?? 0} ms · {result.model}

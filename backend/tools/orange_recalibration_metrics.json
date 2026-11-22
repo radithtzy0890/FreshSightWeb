@@ -15,7 +15,7 @@
     },
     "orange_green_orange": {
       "accuracy": 0.9983333333333333,
-      "macro_f1": 0.49958298582151794,
+      "macro_f1": 0.9991659716430359,
       "counts": {
         "fresh_orange": 599,
         "rotten_orange": 1
@@ -23,7 +23,7 @@
     },
     "orange_fresh_orange": {
       "accuracy": 0.94,
-      "macro_f1": 0.3230240549828179,
+      "macro_f1": 0.9690721649484536,
       "counts": {
         "fresh_apple": 1,
         "fresh_orange": 188,
@@ -46,7 +46,7 @@
     },
     "orange_cankered_orange": {
       "accuracy": 0.98,
-      "macro_f1": 0.494949494949495,
+      "macro_f1": 0.98989898989899,
       "counts": {
         "fresh_orange": 4,
         "rotten_orange": 196
@@ -54,7 +54,7 @@
     },
     "external_apple_fresh": {
       "accuracy": 0.9856459330143541,
-      "macro_f1": 0.4963855421686747,
+      "macro_f1": 0.9927710843373494,
       "counts": {
         "fresh_apple": 206,
         "rotten_apple": 3
@@ -62,7 +62,7 @@
     },
     "external_apple_rotten": {
       "accuracy": 0.9856459330143541,
-      "macro_f1": 0.4963855421686747,
+      "macro_f1": 0.9927710843373494,
       "counts": {
         "fresh_apple": 3,
         "rotten_apple": 206

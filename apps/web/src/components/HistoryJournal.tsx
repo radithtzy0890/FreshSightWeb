@@ -1,27 +1,48 @@
 import React, { useState, useMemo } from 'react';
 import { Maximize2, Trash2, X, Search, FileText, Copy, RotateCcw, Check, Sparkles } from 'lucide-react';
-import { AnalysisResult, Verdict, getVerdict } from '../types';
-import { FRUIT_NAMES, formatPercent, getExplanationText, MODEL_LABELS } from '../services/cvEngine';
+import { AnalysisResult, Verdict } from '../types';
+import {
+  FRUIT_NAMES,
+  formatPercent,
+  getDiagnosisTitle,
+  getExplanationText,
+  MODEL_LABELS,
+  resolveVerdict,
+} from '../services/cvEngine';
 import { sound } from '../services/soundEngine';
 
 interface HistoryJournalProps {
   history: AnalysisResult[];
   onSelectDetail: (item: AnalysisResult) => void;
   onDeleteItem: (id: number) => void;
+  onUpdateItem?: (item: AnalysisResult) => void;
   onClearAll: () => void;
   onNavigate: (id: string) => void;
 }
 
 const verdictLabel = (verdict: Verdict): string =>
-  verdict === 'segar' ? 'Segar' : verdict === 'busuk' ? 'Busuk' : 'Ragu';
+  verdict === 'segar'
+    ? 'Segar'
+    : verdict === 'busuk'
+    ? 'Busuk'
+    : verdict === 'tidak_terdeteksi'
+    ? 'Tidak Terdeteksi'
+    : 'Ragu';
 
 const verdictBadgeLabel = (verdict: Verdict): string =>
-  verdict === 'segar' ? '✓ Segar' : verdict === 'busuk' ? '× Busuk' : '? Ragu';
+  verdict === 'segar'
+    ? '✓ Segar'
+    : verdict === 'busuk'
+    ? '× Busuk'
+    : verdict === 'tidak_terdeteksi'
+    ? '⊘ Non-Buah'
+    : '? Ragu';
 
 export const HistoryJournal: React.FC<HistoryJournalProps> = ({
   history,
   onSelectDetail,
   onDeleteItem,
+  onUpdateItem,
   onClearAll,
   onNavigate,
 }) => {
@@ -39,7 +60,7 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
   const filteredHistory = useMemo(() => {
     return history.filter((item) => {
       const fruitName = FRUIT_NAMES[item.fruit] || item.fruit;
-      const itemVerdict = item.verdict ?? getVerdict(item.conf, item.rot);
+      const itemVerdict = resolveVerdict(item);
       const statusText = verdictLabel(itemVerdict).toLowerCase();
       const title = `${fruitName} ${statusText}`.toLowerCase();
       const matchesSearch = !searchQuery || title.includes(searchQuery.toLowerCase());
@@ -48,7 +69,8 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
         filterStatus === 'all' ||
         (filterStatus === 'segar' && itemVerdict === 'segar') ||
         (filterStatus === 'busuk' && itemVerdict === 'busuk') ||
-        (filterStatus === 'ragu' && itemVerdict === 'ragu');
+        (filterStatus === 'ragu' && itemVerdict === 'ragu') ||
+        (filterStatus === 'tidak_terdeteksi' && itemVerdict === 'tidak_terdeteksi');
       return matchesSearch && matchesFruit && matchesStatus;
     });
   }, [history, searchQuery, filterFruit, filterStatus]);
@@ -65,21 +87,59 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
     onSelectDetail(item);
     setDetailItem(item);
     setViewMode('asli');
-    setFeedbackSent(null);
+    setFeedbackSent(
+      item.userCorrection
+        ? `Koreksi tersimpan: ${item.userCorrection.replace('_', ' ')}`
+        : item.userVerified
+        ? 'Terverifikasi benar oleh pengguna.'
+        : null
+    );
     setShowCorrection(false);
   };
 
   const handleCopySummary = (item: AnalysisResult) => {
     sound.play('click');
-    const fruitName = FRUIT_NAMES[item.fruit];
-    const itemVerdict = item.verdict ?? getVerdict(item.conf, item.rot);
-    const text = `${fruitName} ${verdictLabel(itemVerdict)} (${formatPercent(item.conf)}). ${getExplanationText(item)}`;
+    const title = getDiagnosisTitle(item);
+    const text = `${title} (${formatPercent(item.conf)}). ${getExplanationText(item)}`;
     navigator.clipboard?.writeText(text);
   };
 
-  const detailVerdict: Verdict = detailItem
-    ? detailItem.verdict ?? getVerdict(detailItem.conf, detailItem.rot)
-    : 'ragu';
+  const handleDownloadSummary = (item: AnalysisResult) => {
+    sound.play('click');
+    const itemVerdict = resolveVerdict(item);
+    const parsedDate = new Date(item.date);
+    const safeDate = Number.isNaN(parsedDate.getTime())
+      ? item.date
+      : parsedDate.toLocaleString('id-ID');
+    const lines = [
+      'FreshSight - Ringkasan Analisis',
+      `Tanggal: ${safeDate}`,
+      `Diagnosis: ${getDiagnosisTitle(item)}`,
+      `Status: ${verdictLabel(itemVerdict)}`,
+      `Keyakinan: ${formatPercent(item.conf)}`,
+      `Rasio area cacat: ${item.rasio || 0}%`,
+      `Jumlah bercak: ${item.n || 0}`,
+      `Lokasi bercak: ${item.loc || '–'}`,
+      `Jarak warna: ${item.jw ?? 0}`,
+      `Tekstur: ${item.tk ?? 0}`,
+      `Model: ${item.model}`,
+      ...(item.userCorrection ? [`Koreksi pengguna: ${item.userCorrection}`] : []),
+      '',
+      'Penjelasan:',
+      getExplanationText(item),
+    ];
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `freshsight-${item.fruit}-${item.id}.txt`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const detailVerdict: Verdict = detailItem ? resolveVerdict(detailItem) : 'ragu';
 
   return (
     <section id="section-riwayat" className="py-24 bg-[#0A2E19] text-white relative overflow-hidden border-t-2 border-black">
@@ -130,10 +190,9 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
             <div className="marquee-container py-2">
               <div className="marquee-track">
                 {marqueeItems.map((item, idx) => {
-                  const verdict: Verdict = item.verdict ?? getVerdict(item.conf, item.rot);
+                  const verdict: Verdict = resolveVerdict(item);
                   const photo = item.thumb || item.img || '/fruit/apple_fresh.jpg';
                   const fruitName = FRUIT_NAMES[item.fruit] || item.fruit;
-                  const statusLabel = verdictLabel(verdict);
 
                   return (
                     <div
@@ -179,7 +238,7 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
                       {/* Info & Tactile Actions */}
                       <div className="space-y-1">
                         <div className="flex items-center justify-between text-xs font-passata">
-                          <span className="font-bold text-black uppercase truncate">{fruitName} {statusLabel}</span>
+                          <span className="font-bold text-black uppercase truncate">{getDiagnosisTitle(item)}</span>
                           <span className="font-mono-tech text-[10px] text-black/70 font-bold">{formatPercent(item.conf)}</span>
                         </div>
 
@@ -254,6 +313,7 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
                 <option value="segar">Segar</option>
                 <option value="busuk">Busuk</option>
                 <option value="ragu">Ragu</option>
+                <option value="tidak_terdeteksi">Tidak Terdeteksi</option>
               </select>
             </div>
           </div>
@@ -276,17 +336,18 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {filteredHistory.map((item) => {
-                const verdict: Verdict = item.verdict ?? getVerdict(item.conf, item.rot);
+                const verdict: Verdict = resolveVerdict(item);
                 const photo = item.thumb || item.img || '/fruit/apple_fresh.jpg';
                 const fruitName = FRUIT_NAMES[item.fruit] || item.fruit;
-                const statusLabel = verdictLabel(verdict);
-                const dateStr = item.date
-                  ? new Date(item.date).toLocaleDateString('id-ID', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                    })
-                  : '31 Okt 2026';
+                const parsedDate = item.date ? new Date(item.date) : null;
+                const dateStr =
+                  parsedDate && !Number.isNaN(parsedDate.getTime())
+                    ? parsedDate.toLocaleDateString('id-ID', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                      })
+                    : item.date || 'Baru saja';
 
                 return (
                   <div
@@ -306,7 +367,7 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
                       {/* Card Info */}
                       <div className="flex-1 min-w-0 space-y-1">
                         <h4 className="font-passata text-lg text-black uppercase font-bold truncate">
-                          {fruitName} {statusLabel}
+                          {getDiagnosisTitle(item)}
                         </h4>
                         <p className="font-mono-tech text-xs text-black/70">
                           {dateStr} · {formatPercent(item.conf)}
@@ -460,8 +521,7 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
                     {verdictBadgeLabel(detailVerdict)}
                   </span>
                   <h3 className="font-passata text-3xl sm:text-4xl text-black font-bold uppercase tracking-tight">
-                    {FRUIT_NAMES[detailItem.fruit]}{' '}
-                    {detailVerdict === 'ragu' ? 'Status Ragu' : verdictLabel(detailVerdict)}
+                    {getDiagnosisTitle(detailItem)}
                   </h3>
                 </div>
 
@@ -606,7 +666,14 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
                         <button
                           onClick={() => {
                             sound.play('click');
-                            setFeedbackSent('Terima kasih! Umpan balik tercatat.');
+                            const updated: AnalysisResult = {
+                              ...detailItem,
+                              userVerified: true,
+                              userCorrection: undefined,
+                            };
+                            setDetailItem(updated);
+                            onUpdateItem?.(updated);
+                            setFeedbackSent('Terima kasih! Umpan balik tersimpan di arsip.');
                           }}
                           className="py-1 px-3 rounded-lg border-2 border-black bg-white hover:bg-[#8DF947] font-passata text-xs uppercase font-bold transition-colors cursor-pointer"
                         >
@@ -639,7 +706,14 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
                           <button
                             onClick={() => {
                               sound.play('click');
-                              setFeedbackSent('Koreksi berhasil dikirim.');
+                              const updated: AnalysisResult = {
+                                ...detailItem,
+                                userVerified: false,
+                                userCorrection: correctionLabel,
+                              };
+                              setDetailItem(updated);
+                              onUpdateItem?.(updated);
+                              setFeedbackSent(`Koreksi tersimpan: ${correctionLabel.replace('_', ' ')}`);
                               setShowCorrection(false);
                             }}
                             className="py-1 px-3 rounded-lg bg-black text-white font-passata text-xs uppercase font-bold cursor-pointer"
@@ -652,7 +726,7 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
                   )}
                 </div>
 
-                {/* Action Buttons: Analisis lagi, Unduh PDF, Salin ringkasan */}
+                {/* Action Buttons: Analisis lagi, Unduh Ringkasan, Salin ringkasan */}
                 <div className="flex flex-wrap items-center gap-2 pt-2">
                   <button
                     onClick={() => {
@@ -667,11 +741,11 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
                   </button>
 
                   <button
-                    onClick={() => window.print()}
+                    onClick={() => handleDownloadSummary(detailItem)}
                     className="py-2 px-4 rounded-xl bg-white hover:bg-black/10 border-2 border-black font-passata text-xs uppercase font-bold transition-colors shadow-[2px_2px_0_#000000] flex items-center gap-1.5 cursor-pointer"
                   >
                     <FileText size={14} />
-                    <span>Unduh PDF</span>
+                    <span>Unduh Ringkasan</span>
                   </button>
 
                   <button

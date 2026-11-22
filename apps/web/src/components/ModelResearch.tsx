@@ -3,28 +3,28 @@ import { ChevronDown, ChevronUp, Copy, Check, Terminal, Layers, ShieldAlert, Cpu
 import { sound } from '../services/soundEngine';
 
 const TENSOR_PIPELINE = [
-  { step: '01', title: 'Gerbang 224×224 Matrix', desc: 'Foton dipotong dan dinormalisasi menjadi matriks [224, 224, 3]. Ruang warna RGB mengunci kontur epidermis buah sebelum kalkulasi dimulai.' },
-  { step: '02', title: 'Lorong Residual Terbalik', desc: 'Arsitektur MobileNetV2 mengompresi fitur berbobot ringan, mengekstrak tekstur lilin kutikula, bercak nekrosis, dan pantulan spektral.' },
-  { step: '03', title: 'Neraca Probabilitas Softmax', desc: 'Lapisan keluaran menghitung distribusi probabilitas kontinu untuk 6 kelas biologis tanpa prasangka.' },
-  { step: '04', title: 'Garis Batas Keyakinan 80%', desc: 'Bila keyakinan di bawah 80%, sistem menolak berspekulasi dan menandai hasil sebagai "RAGU" demi menjaga kebenaran data.' },
+  { step: '01', title: 'Gerbang 224×224 Matrix', desc: 'Citra dipotong, dikoreksi orientasi EXIF, dan dinormalisasi menjadi matriks [224, 224, 3] dengan skala [-1, 1] melalui layer Rescaling(2, -1).' },
+  { step: '02', title: 'Backbone MobileNetV3Small', desc: 'Arsitektur MobileNetV3Small (942.582 parameter) mengekstrak peta fitur 7×7×576 dari permukaan epidermis buah.' },
+  { step: '03', title: 'Neraca Probabilitas Softmax', desc: 'GlobalAveragePooling2D dan Dense 6 kelas menghitung distribusi probabilitas kontinu beserta gradien Grad-CAM.' },
+  { step: '04', title: 'Gerbang OOD & Ambang Keyakinan 60%', desc: 'Objek non-buah ditolak sebagai Tidak Terdeteksi, dan bila keyakinan di bawah 60% atau multi-buah, hasil ditandai sebagai RAGU.' },
 ];
 
 const FAQS = [
   {
-    q: 'Apakah foto buah pernah melintas ke server awan?',
-    a: 'Sama sekali tidak. Seluruh komputasi neural vision dieksekusi secara lokal pada engine peramban Anda melalui akselerasi WebGL / WASM. Foto buah Anda tidak pernah meninggalkan perangkat Anda.',
+    q: 'Bagaimana foto buah diproses dan disimpan?',
+    a: 'Foto dikirim ke layanan inferensi FastAPI lokal untuk dievaluasi oleh model MobileNetV3Small dan Grad-CAM, sedangkan riwayat hasil analisis hanya disimpan di localStorage peramban Anda.',
   },
   {
-    q: 'Varietas buah apa saja yang telah dipelajari oleh retina silikon ini?',
-    a: 'Saat ini model dikalibrasi khusus untuk tiga varietas utama: Apel (Fuji & Granny Smith), Pisang (Cavendish), dan Jeruk (Valencia Sweet).',
+    q: 'Varietas buah apa saja yang didukung?',
+    a: 'Model dikalibrasi untuk tiga jenis buah utama dalam enam kelas: Apel (segar/busuk), Pisang (segar/busuk), dan Jeruk (segar/busuk, termasuk jeruk kulit hijau dan bercak cacat).',
   },
   {
     q: 'Berapa tingkat keandalan dan akurasi model?',
-    a: 'Berdasarkan pengujian dataset terisolasi, model mencapai F1-score 97.3%. Bayangan ekstrem atau objek lain yang menutupi buah dapat mempengaruhi hasil.',
+    a: 'Pada test set asli bebas kebocoran (918 citra), model mencapai akurasi 98,69% dan Macro-F1 0,9805. Pada holdout eksternal green orange mencapai 99,83% dan AFQC apple mencapai 96,41%.',
   },
   {
-    q: 'Mengapa sistem menampilkan vonis "RAGU"?',
-    a: 'Bila keyakinan model berada di antara 60% hingga 79%, sistem memilih jujur dan menyarankan pengambilan foto ulang daripada memberikan vonis yang berisiko keliru.',
+    q: 'Mengapa sistem menampilkan vonis "RAGU" atau "TIDAK TERDETEKSI"?',
+    a: 'Bila keyakinan di bawah 60% atau terdeteksi lebih dari satu buah, sistem menampilkan RAGU. Bila tidak ditemukan morfologi warna buah yang valid, sistem menampilkan TIDAK TERDETEKSI.',
   },
 ];
 
@@ -72,12 +72,12 @@ console.log(report.confidence); // 0.992 (99.2%)`;
               BAB 04 // ANATOMI RETINA SILIKON 224px
             </span>
             <span className="font-mono-tech text-xs text-[#A3BCAE]">
-              ENZIM KOMPUTASI: TENSORFLOW.JS / WEBGL 2.0
+              ENGINE: FASTAPI + KERAS 3 MOBILENETV3SMALL
             </span>
           </div>
 
           <span className="font-mono-tech text-xs text-[#8DF947] font-bold">
-            BOBOT TENSOR: 3.4M PARAMETERS
+            BOBOT TENSOR: 942.582 PARAMETERS (4,13 MB)
           </span>
         </div>
 

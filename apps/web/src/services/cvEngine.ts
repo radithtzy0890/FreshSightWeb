@@ -1,4 +1,4 @@
-import { AnalysisResult, FruitType, DemoPreset, getVerdict } from '../types';
+import { AnalysisResult, FruitType, DemoPreset, Verdict, getVerdict } from '../types';
 
 export const FRUIT_NAMES: Record<FruitType, string> = {
   apple: 'Apel',
@@ -39,18 +39,36 @@ export const getTodayString = (): string =>
     year: 'numeric',
   });
 
+export const resolveVerdict = (res: AnalysisResult): Verdict => {
+  if (res.verdict === 'tidak_terdeteksi' || res.isOod || res.fruitCount === 0) {
+    return 'tidak_terdeteksi';
+  }
+  if ((res.fruitCount ?? 1) > 1) {
+    return 'ragu';
+  }
+  return res.verdict ?? getVerdict(res.conf, res.rot, res.isOod, res.fruitCount);
+};
+
 export const getDiagnosisTitle = (res: AnalysisResult): string => {
-  const verdict =
-    (res.fruitCount ?? 1) > 1 ? 'ragu' : res.verdict ?? getVerdict(res.conf, res.rot);
+  const verdict = resolveVerdict(res);
+  if (verdict === 'tidak_terdeteksi') {
+    return 'Objek Tidak Terdeteksi';
+  }
   const label = verdict === 'segar' ? 'Segar' : verdict === 'busuk' ? 'Busuk' : 'Status Ragu';
   return `${FRUIT_NAMES[res.fruit]} ${label}`;
 };
 
 export const getExplanationText = (res: AnalysisResult): string => {
+  const verdict = resolveVerdict(res);
+  if (verdict === 'tidak_terdeteksi') {
+    return (
+      res.ex ||
+      'Sistem tidak mendeteksi objek buah apel, pisang, atau jeruk yang valid pada foto ini. Pastikan foto menampilkan satu buah utuh di tengah bingkai dengan pencahayaan cukup dan latar polos.'
+    );
+  }
   if ((res.fruitCount ?? 1) > 1) {
     return `Terdeteksi ${res.fruitCount} kandidat buah dalam foto ini. Model dilatih untuk satu buah per bingkai, jadi hasil ditandai RAGU agar tidak menyesatkan. Coba foto satu buah di tengah bingkai dengan latar polos.`;
   }
-  const verdict = getVerdict(res.conf, res.rot);
   if (verdict === 'ragu') {
     return `Model hanya memiliki keyakinan ${formatPercent(res.conf)} (di bawah ambang 60%), sehingga status ditandai RAGU. Coba foto ulang dengan satu buah di tengah bingkai, pencahayaan merata, dan latar polos agar hasil lebih pasti.`;
   }
@@ -58,7 +76,7 @@ export const getExplanationText = (res: AnalysisResult): string => {
   const isLow = res.conf < 0.7;
   const prefix = isLow ? 'Hasil estimasi awal: ' : '';
   if (res.rot) {
-    const locText = res.loc !== '–' ? `, terkonsentrasi di area ${res.loc}` : '';
+    const locText = res.loc !== '–' && res.loc !== '-' ? `, terkonsentrasi di area ${res.loc}` : '';
     return `${prefix}${FRUIT_NAMES[res.fruit]} menunjukkan anomali kesegaran karena ${DEFECT_DESCRIPTIONS[res.fruit]}${locText}. Defek menutupi estimasi ${res.rasio}% dari total permukaan buah yang diinspeksi.`;
   } else {
     const spotText = res.n ? `terdapat ${res.n} titik pigmen minor` : 'tanpa lesi atau bercak terdeteksi';
@@ -186,6 +204,7 @@ export function analyzeImageLocally(imageElement: HTMLImageElement): Omit<Analys
   const S = new Float32Array(totalPixels);
   const V = new Float32Array(totalPixels);
 
+  let coloredFruitPixels = 0;
   for (let i = 0; i < totalPixels; i++) {
     const r = imageData[i * 4] / 255;
     const g = imageData[i * 4 + 1] / 255;
@@ -202,9 +221,11 @@ export function analyzeImageLocally(imageElement: HTMLImageElement): Omit<Analys
       if (hue < 0) hue += 360;
     }
     H[i] = hue;
+    if (S[i] > 0.15 && V[i] > 0.12 && (hue <= 195 || hue >= 310)) {
+      coloredFruitPixels++;
+    }
   }
 
-  // Border sampling for background estimation
   const margin = Math.max(2, Math.round(Math.min(w, h) * 0.05));
   const borderSamples: [number[], number[], number[]] = [[], [], []];
   for (let y = 0; y < h; y++) {
@@ -218,7 +239,7 @@ export function analyzeImageLocally(imageElement: HTMLImageElement): Omit<Analys
     }
   }
 
-  const median = (arr: number[]) => arr.sort((a, b) => a - b)[arr.length >> 1];
+  const median = (arr: number[]) => (arr.length ? [...arr].sort((a, b) => a - b)[arr.length >> 1] : 0);
   const bgColors = borderSamples.map(median);
   const foreground = new Uint8Array(totalPixels);
 
@@ -226,7 +247,7 @@ export function analyzeImageLocally(imageElement: HTMLImageElement): Omit<Analys
     const dr = imageData[i * 4] - bgColors[0];
     const dg = imageData[i * 4 + 1] - bgColors[1];
     const db = imageData[i * 4 + 2] - bgColors[2];
-    foreground[i] = Math.sqrt(dr * dr + dg * dg + db * db) > 48 ? 1 : 0;
+    foreground[i] = Math.sqrt(dr * dr + dg * dg + db * db) > 42 ? 1 : 0;
   }
 
   const { labels, sizes } = connectedComponents(foreground, w, h);
@@ -242,7 +263,7 @@ export function analyzeImageLocally(imageElement: HTMLImageElement): Omit<Analys
   const fruitMask = new Uint8Array(totalPixels);
   let isFallbackMask = false;
 
-  if (bestLabel && bestArea > totalPixels * 0.04 && bestArea < totalPixels * 0.88) {
+  if (bestLabel && bestArea > totalPixels * 0.02 && bestArea < totalPixels * 0.92) {
     for (let i = 0; i < totalPixels; i++) fruitMask[i] = labels[i] === bestLabel ? 1 : 0;
     const inv = fruitMask.map(v => (v ? 0 : 1));
     const invComp = connectedComponents(inv, w, h);
@@ -282,8 +303,8 @@ export function analyzeImageLocally(imageElement: HTMLImageElement): Omit<Analys
     }
   }
 
-  const bboxW = maxX - minX + 1;
-  const bboxH = maxY - minY + 1;
+  const bboxW = Math.max(1, maxX - minX + 1);
+  const bboxH = Math.max(1, maxY - minY + 1);
   const fillRatio = fruitArea / (bboxW * bboxH);
   const aspectRatio = Math.max(bboxW, bboxH) / Math.min(bboxW, bboxH);
 
@@ -330,27 +351,29 @@ export function analyzeImageLocally(imageElement: HTMLImageElement): Omit<Analys
   });
 
   const defectRatio = defectCount / validPixelCount;
-  
-  // Intelligent Multi-Feature Fruit Recognition (Banana, Orange, Apple)
-  const imgAspect = Math.max(imageElement.naturalWidth, 1) / Math.max(imageElement.naturalHeight, 1);
-  const isElongated = aspectRatio > 1.25 || imgAspect > 1.30 || imgAspect < 0.75 || fillRatio < 0.66;
-  
   const yellowRatio = yellow / validPixelCount;
   const orangeRatio = orange / validPixelCount;
   const redRatio = red / validPixelCount;
   const greenRatio = green / validPixelCount;
+  const totalFruitColorRatio = yellowRatio + orangeRatio + redRatio + greenRatio;
+
+  const isOod =
+    (isFallbackMask && totalFruitColorRatio < 0.15) ||
+    coloredFruitPixels / totalPixels < 0.02 ||
+    (totalFruitColorRatio < 0.05 && defectRatio < 0.05);
+
+  const imgAspect = Math.max(imageElement.naturalWidth, 1) / Math.max(imageElement.naturalHeight, 1);
+  const isElongated = aspectRatio > 1.25 || imgAspect > 1.30 || imgAspect < 0.75 || fillRatio < 0.66;
 
   let scoreBanana = (isElongated ? 4.2 : 0.4) + yellowRatio * 5.5;
   let scoreOrange = (isElongated ? 0.3 : 2.5) + orangeRatio * 6.0;
   let scoreApple = (isElongated ? 0.3 : 2.5) + (redRatio * 6.0) + (greenRatio * 2.5);
 
-  // Additional hue cues
   const medH = median(innerIndices.map(i => H[i]));
   if (medH >= 38 && medH <= 75) scoreBanana += 2.0;
   if (medH >= 15 && medH < 38) scoreOrange += 2.0;
   if (medH < 15 || medH > 330) scoreApple += 2.0;
 
-  // Brownish senescent bananas
   if (isElongated && defectRatio > 0.08) {
     scoreBanana += 3.5;
   }
@@ -364,15 +387,13 @@ export function analyzeImageLocally(imageElement: HTMLImageElement): Omit<Analys
     fruitType = 'apple';
   }
 
-  // Accurate Fruit Freshness vs Rot Classification
   const rotThreshold = fruitType === 'banana' ? 0.09 : 0.07;
   const isRotten: 0 | 1 = defectRatio >= rotThreshold ? 1 : 0;
 
-  // Calibrate decisive, production-grade confidence (84% - 98%)
-  const baseConf = isRotten 
-    ? 0.85 + Math.min(0.12, (defectRatio - rotThreshold) * 1.5)
-    : 0.88 + Math.min(0.09, (rotThreshold - defectRatio) * 2.0);
-  const confidence = clampNum(baseConf + ((i => ((i % 10) - 5) * 0.005)(totalPixels)), 0.82, 0.985);
+  const rawSupport = clampNum(totalFruitColorRatio + (isRotten ? defectRatio : 0), 0, 1);
+  const confidence = isOod
+    ? 0.25
+    : clampNum(0.55 + rawSupport * 0.38, 0.45, 0.96);
 
   const spotCount = (() => {
     const comp = connectedComponents(defectMask, w, h);
@@ -388,7 +409,6 @@ export function analyzeImageLocally(imageElement: HTMLImageElement): Omit<Analys
     defectLocation = (vPos + ' ' + hPos).trim() || 'tengah';
   }
 
-  // Grad-CAM and Defect Mask texture generation
   const mf = new Float32Array(totalPixels);
   const df = new Float32Array(totalPixels);
   for (let i = 0; i < totalPixels; i++) {
@@ -435,27 +455,30 @@ export function analyzeImageLocally(imageElement: HTMLImageElement): Omit<Analys
     return defectMask[i] ? [255, 69, 58, 230] : fruitMask[i] ? [0, 0, 0, 120] : [0, 0, 0, 160];
   });
 
+  const fruitCount = isOod ? 0 : 1;
+
   return {
     fruit: fruitType,
     rot: isRotten,
     conf: confidence,
-    verdict: getVerdict(confidence, isRotten),
+    isOod,
+    fruitCount,
+    verdict: getVerdict(confidence, isRotten, isOod, fruitCount),
     n: spotCount,
     rasio: Math.round(defectRatio * 100),
     loc: defectLocation,
     jw: Math.round(sumColorDiff / Math.max(defectCount, 1) * 10) / 10,
     tk: Math.round(textureVariation / validPixelCount * 100) / 10,
-    p: calculateClassProbs(fruitType, isRotten, confidence),
+    p: isOod ? [0.16, 0.16, 0.17, 0.17, 0.17, 0.17] : calculateClassProbs(fruitType, isRotten, confidence),
     cam: gradCamPng,
     msk: defectMaskPng,
     ar: w / h,
     fb: isFallbackMask,
     ms: Math.round(performance.now() - startTime),
-    model: 'analisis-warna (browser)',
+    model: 'heuristik-warna (fallback offline)',
   };
 }
 
-// Helper to provide authentic photorealistic fruit pictures for presets & history
 export const FRUIT_PHOTO_MAP: Record<FruitType, [string, string]> = {
   apple: ['/fruit/apple_fresh.jpg', '/fruit/apple_rotten.jpg'],
   banana: ['/fruit/banana_fresh.jpg', '/fruit/banana_rotten.jpg'],
@@ -466,7 +489,6 @@ export function createSampleFruitDataUrl(fruit: FruitType, isRotten: 0 | 1): str
   return FRUIT_PHOTO_MAP[fruit]?.[isRotten] || '/fruit/apple_fresh.jpg';
 }
 
-// ── runAnalysis: top-level helper used by AnalysisStudio ─────────────────
 export async function runAnalysis(
   file: File | null,
   src: 'browser' | 'api' | 'contoh',
@@ -493,17 +515,16 @@ export async function runAnalysis(
       tk,
       p,
       src: 'contoh',
-      model: 'MobileNetV2 (Edge)',
+      model: 'mobilenetv3small_external_green_v2 (sampel)',
       date: now,
-      ms: Math.round(45 + Math.random() * 25),
+      ms: 48,
       img: photoDataUrl,
       thumb: photoDataUrl,
     };
   }
 
-  if (!file) throw new Error('No file provided');
+  if (!file) throw new Error('Berkas gambar tidak ditemukan');
 
-  // Convert File to compressed persistent Base64 DataURL (so it never expires!)
   const photoDataUrl = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -532,7 +553,7 @@ export async function runAnalysis(
   return {
     id,
     ...partial,
-    verdict: getVerdict(partial.conf, partial.rot),
+    verdict: getVerdict(partial.conf, partial.rot, partial.isOod, partial.fruitCount),
     src: 'browser',
     date: now,
     img: photoDataUrl,
@@ -549,26 +570,40 @@ export async function fetchPredictionFromApi(
   const formData = new FormData();
   formData.append('image', blob, fileObj.name || 'foto.jpg');
 
-  const response = await fetch(apiEndpoint.replace(/\/$/, '') + '/v1/predict', {
+  const base = apiEndpoint.replace(/\/$/, '');
+  const response = await fetch(base + '/v1/predict', {
     method: 'POST',
     body: formData,
   });
 
-  if (!response.ok) throw new Error('API Prediction failed');
+  if (!response.ok) {
+    let errMsg = `API Prediction failed (${response.status})`;
+    try {
+      const errJson = await response.json();
+      if (errJson?.detail) errMsg = String(errJson.detail);
+    } catch {}
+    throw new Error(errMsg);
+  }
   const json = await response.json();
-  const labelIndex = MODEL_LABELS.indexOf(json.label);
+  const labelIndex = Math.max(0, MODEL_LABELS.indexOf(json.label));
   const ft = json.features || {};
   const fruitCount = ft.fruit_count ?? 1;
+  const isOod = Boolean(json.is_ood || ft.is_ood || fruitCount === 0);
   const defectRatio = +(ft.rasio_defek || 0);
   const formatBase64 = (b64?: string) =>
     b64 ? (b64.startsWith('data:') ? b64 : 'data:image/png;base64,' + b64) : null;
 
+  const rot = (labelIndex & 1) as 0 | 1;
+  const verdict: Verdict =
+    json.verdict || getVerdict(json.confidence, rot, isOod, fruitCount);
+
   return {
     id: Date.now(),
     fruit: FRUIT_KEYS[labelIndex >> 1],
-    rot: (labelIndex & 1) as 0 | 1,
+    rot,
     conf: json.confidence,
-    verdict: fruitCount > 1 ? 'ragu' : getVerdict(json.confidence, (labelIndex & 1) as 0 | 1),
+    isOod,
+    verdict,
     fruitCount,
     n: ft.jumlah_bercak || 0,
     rasio: Math.round(defectRatio <= 1 ? defectRatio * 100 : defectRatio),
@@ -583,8 +618,7 @@ export async function fetchPredictionFromApi(
     ex: json.explanation,
     ms: json.inference_ms || 0,
     src: 'api',
-    model: json.model?.name || 'mobilenetv3_external',
-    date: getTodayString(),
+    model: json.model?.name || 'mobilenetv3small_external_green_v2',
+    date: new Date().toISOString(),
   };
 }
-

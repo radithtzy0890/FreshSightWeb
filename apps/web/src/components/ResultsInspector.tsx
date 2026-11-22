@@ -27,7 +27,7 @@ const STEPS = [
   {
     id: 4,
     title: 'Arsip Otomatis',
-    desc: 'Foto, vonis, probabilitas, dan penjelasan disimpan di perangkat. Riwayat bisa dibuka kapan saja tanpa mengirim foto ke server.',
+    desc: 'Setelah inferensi selesai, foto, vonis, probabilitas, dan penjelasan disimpan di localStorage peramban agar riwayat dapat dibuka kembali kapan saja.',
   },
 ];
 
@@ -36,7 +36,7 @@ export const ResultsInspector: React.FC<ResultsInspectorProps> = ({ result }) =>
   const [viewHeatmap, setViewHeatmap] = useState(false);
   const navigate = useNavigate();
 
-  const verdict: Verdict = result ? result.verdict ?? getVerdict(result.conf, result.rot) : 'segar';
+  const verdict: Verdict = result ? result.verdict ?? getVerdict(result.conf, result.rot, result.isOod, result.fruitCount) : 'segar';
   const confPct = result ? Math.round(result.conf * 100) : 99;
   const active = STEPS[activeStep - 1];
 
@@ -184,7 +184,7 @@ export const ResultsInspector: React.FC<ResultsInspectorProps> = ({ result }) =>
               </div>
 
               <p className="text-[11px] text-white/70 text-center max-w-sm">
-                Langkah aktif: <strong className="text-white">{active.title}</strong> — {active.desc}
+                Langkah aktif: <strong className="text-white">{active.title}</strong> ({active.desc})
               </p>
             </div>
           </div>

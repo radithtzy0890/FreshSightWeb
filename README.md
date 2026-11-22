@@ -177,32 +177,33 @@ di `backend/app.py` jika frontend berjalan di origin lain.
 ## Model
 
 - Backbone: **MobileNetV3Small**, feature map terakhir 7×7×576.
-- Head: GlobalAveragePooling2D → Dense 6 (softmax), total **942.582 parameter**.
-- Input: 224×224×3, skala 0–1, dengan `Rescaling(2, -1)` internal.
-- Grad-CAM: gradien kelas target terhadap feature map 7×7×576.
-- Auto-crop: komponen buah merah/hijau yang kecil (<25% frame) dipakai untuk
+- Head: GlobalAveragePooling2D → Dense 6 (softmax), total **942.582 parameter** (ukuran berkas `.keras` **4,13 MB**).
+- Input: 224×224×3, skala 0–1, dengan `Rescaling(2, -1)` internal (menormalkan piksel ke `[-1, 1]`).
+- koreksi orientasi EXIF otomatis (`ImageOps.exif_transpose`) untuk foto kamera ponsel.
+- Deteksi non-buah (OOD): menolak objek di luar spektrum/morfologi buah dengan status `tidak_terdeteksi`.
+- Grad-CAM: gradien kelas target terhadap feature map 7×7×576 dalam satu *forward-gradient pass* terpadu.
+- Auto-crop: komponen buah merah/oranye/kuning/hijau yang kecil (<25% frame) dipakai untuk
   klasifikasi/Grad-CAM/fitur; buah close-up memakai frame penuh.
-- TTA adaptif: hanya saat keyakinan penuh < 80%, dan hanya dipakai jika menang
-  jelas (selisih ≥ 20 poin atau keyakinan ≥ 85%).
+- TTA adaptif (flip + rotasi 90°/180°/270° + center-crop): aktif saat keyakinan penuh < 80%.
 - Model aktif: `mobilenetv3small_external_green_v2.keras` (green orange + cacat orange
-  ditambahkan ke head recalibration).
+  ditambahkan ke head recalibration dengan seleksi berbasis *validation set*).
 
 ### Ringkasan evaluasi
 
-| Dataset | n | Akurasi |
-|---|---:|---:|
-| Test asli 6 kelas | 918 | **98,69%** |
-| Train sample (sanity check) | 300 | 99,33% |
-| AFQC Test (apel eksternal) | 232 | 93,97% |
-| Green orange holdout | 600 | **99,83%** |
-| Fresh orange eksternal | 200 | 94,00% |
-| Rotten orange eksternal | 200 | 100% |
-| Blackspot orange | 200 | 100% |
-| Canker orange | 200 | 98,00% |
-| AFQC apple fresh holdout | 209 | 98,09% |
-| AFQC apple rotten holdout | 209 | 94,74% |
-| Banana overripe | 239 | 100% |
-| External hard set (16, via API) | 16 | 13/16 |
+| Dataset | n | Akurasi | Macro-F1 (kelas aktif) |
+|---|---:|---:|---:|
+| Test asli 6 kelas | 918 | **98,69%** | **0,9805** |
+| Train sample (sanity check) | 300 | 99,33% | 0,9933 |
+| AFQC Test (apel eksternal) | 232 | 93,97% | 0,9396 |
+| Green orange holdout | 600 | **99,83%** | 0,9992 |
+| Fresh orange eksternal | 200 | 94,00% | 0,9691 |
+| Rotten orange eksternal | 200 | 100% | 1,0000 |
+| Blackspot orange | 200 | 100% | 1,0000 |
+| Canker orange | 200 | 98,00% | 0,9899 |
+| AFQC apple fresh holdout | 209 | 98,09% (full) / 98,56% (letterbox) | 0,9903 |
+| AFQC apple rotten holdout | 209 | 94,74% (full) / 98,56% (letterbox) | 0,9730 |
+| Banana overripe | 239 | 100% | 1,0000 |
+| External hard set (16) | 16 | 12/16 (75,00% full) / 13/16 (API+TTA) | 0,7528 |
 
 Recall per kelas pada test asli: `fresh_apple` 98,31%, `rotten_apple` 100%,
 `fresh_banana` 98,73%, `rotten_banana` 99,12%, `fresh_orange` 98,31%,

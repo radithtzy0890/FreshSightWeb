@@ -14,6 +14,7 @@ export interface AnalysisResult {
   rot: 0 | 1;
   conf: number;
   verdict: Verdict;
+  isOod?: boolean;
   n: number;
   rasio: number;
   loc: string;
@@ -34,6 +35,8 @@ export interface AnalysisResult {
   fb?: boolean;
   quality?: QualityCheck;
   latencyMs?: number;
+  userVerified?: boolean;
+  userCorrection?: string;
 }
 
 export type DemoPreset = [
@@ -92,7 +95,14 @@ export const VERDICT_STYLE: Record<
   },
 };
 
-export function getVerdict(conf: number, rot: 0 | 1): Verdict {
+export function getVerdict(
+  conf: number,
+  rot: 0 | 1,
+  isOod?: boolean,
+  fruitCount?: number
+): Verdict {
+  if (isOod || fruitCount === 0) return 'tidak_terdeteksi';
+  if ((fruitCount ?? 1) > 1) return 'ragu';
   if (conf >= 0.60) return rot === 0 ? 'segar' : 'busuk';
   return 'ragu';
 }

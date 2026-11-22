@@ -6,3 +6,4 @@ keras==3.15.1
 pillow==13.0.0
 numpy==1.26.4
 opencv-python-headless==4.10.0.84
+httpx<0.28.0

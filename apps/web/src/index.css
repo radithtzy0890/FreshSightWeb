@@ -63,6 +63,10 @@ body {
   letter-spacing: -0.04em;
 }
 
+.font-mono-tech {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
 /* ── 3D Text Stroke & Shadows (Exact Planet Oño Style) ── */
 .text-shadow-3d-white {
   color: #FFFFFF;

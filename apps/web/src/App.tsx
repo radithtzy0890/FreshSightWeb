@@ -177,6 +177,16 @@ export const App: React.FC = () => {
     showToast('Spesimen dihapus dari arsip.');
   };
 
+  const handleUpdateHistoryItem = (updatedItem: AnalysisResult) => {
+    setHistory((prev) => {
+      const updated = prev.map((x) => (x.id === updatedItem.id ? updatedItem : x));
+      persistHistory(updated);
+      return updated;
+    });
+    setCurrentResult((prev) => (prev && prev.id === updatedItem.id ? updatedItem : prev));
+    showToast('Umpan balik spesimen berhasil disimpan ke arsip.', 'success');
+  };
+
   const handleClearHistory = () => {
     if (window.confirm('Kosongkan seluruh arsip spesimen pada perangkat ini?')) {
       setHistory([]);
@@ -214,6 +224,7 @@ export const App: React.FC = () => {
                 history={history}
                 onSelectDetail={handleSelectHistoryDetail}
                 onDeleteItem={handleDeleteHistoryItem}
+                onUpdateItem={handleUpdateHistoryItem}
                 onClearAll={handleClearHistory}
                 onNavigate={(path) => navigate(path)}
               />
