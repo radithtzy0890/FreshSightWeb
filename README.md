@@ -42,14 +42,16 @@ backend/
   app.py                         # FastAPI: /v1/health, /v1/predict, Grad-CAM, fitur defek
   requirements.txt
   models/
-    mobilenetv3small_external_green_v2.keras   # model aktif
-    mobilenetv3small_external_recalibrated.keras
+    mobilenetv3small_external_green_v2.keras             # model aktif (4,13 MB)
+    mobilenetv3small_external_green_v2_float16.tflite    # ekspor edge float16 (1,82 MiB, 2,48 ms)
+    mobilenetv3small_external_recalibrated.keras         # model final naskah jurnal (4,13 MB)
   tools/
     recalibrate_orange_head.py   # script recalibration head (path dataset lokal)
     evaluate_all.py              # evaluasi menyeluruh (path dataset lokal)
     summarize_eval.py
     evaluation_results.json
     orange_recalibration_metrics.json
+    web_vs_journal_comparison.json
 
 apps/web/
   src/
@@ -176,10 +178,11 @@ di `backend/app.py` jika frontend berjalan di origin lain.
 
 ## Model
 
-- Backbone: **MobileNetV3Small**, feature map terakhir 7×7×576.
-- Head: GlobalAveragePooling2D → Dense 6 (softmax), total **942.582 parameter** (ukuran berkas `.keras` **4,13 MB**).
+- Backbone: **MobileNetV3Small**, feature map terakhir 7×7×576 (116,02 MFLOPs).
+- Head: GlobalAveragePooling2D → Dense 6 (softmax), total **942.582 parameter** (ukuran berkas `.keras` **4,13 MB**; ekspor TFLite `float16` **1,82 MiB**, latensi CPU **2,48 ms / 403,7 FPS**).
 - Input: 224×224×3, skala 0–1, dengan `Rescaling(2, -1)` internal (menormalkan piksel ke `[-1, 1]`).
-- koreksi orientasi EXIF otomatis (`ImageOps.exif_transpose`) untuk foto kamera ponsel.
+- Inferensi API memakai `@tf.function` (*graph mode* + *startup warmup*) sehingga latensi klasifikasi + Grad-CAM + analisis defek turun menjadi **~15–18 ms** (warm CPU).
+- Koreksi orientasi EXIF otomatis (`ImageOps.exif_transpose`) untuk foto kamera ponsel.
 - Deteksi non-buah (OOD): menolak objek di luar spektrum/morfologi buah dengan status `tidak_terdeteksi`.
 - Grad-CAM: gradien kelas target terhadap feature map 7×7×576 dalam satu *forward-gradient pass* terpadu.
 - Auto-crop: komponen buah merah/oranye/kuning/hijau yang kecil (<25% frame) dipakai untuk

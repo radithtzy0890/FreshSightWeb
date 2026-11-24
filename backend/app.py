@@ -44,25 +44,25 @@ CLASSES = [
 FRUIT_NAMES = {"apple": "Apel", "banana": "Pisang", "orange": "Jeruk"}
 CALIBRATION = {
     "apple": {
-        "defek_fresh": 0.12769,
-        "thr_defek": 0.14797,
-        "tekstur_fresh": 689.67,
-        "thr_tekstur": 1680.13,
-        "thr_bercak": 7.75,
+        "defek_fresh": 0.12282,
+        "thr_defek": 0.14104,
+        "tekstur_fresh": 723.02,
+        "thr_tekstur": 1719.10,
+        "thr_bercak": 7.71,
     },
     "banana": {
-        "defek_fresh": 0.12959,
-        "thr_defek": 0.20812,
-        "tekstur_fresh": 921.54,
-        "thr_tekstur": 3206.88,
-        "thr_bercak": 8.33,
+        "defek_fresh": 0.13896,
+        "thr_defek": 0.21439,
+        "tekstur_fresh": 810.38,
+        "thr_tekstur": 2643.80,
+        "thr_bercak": 7.65,
     },
     "orange": {
-        "defek_fresh": 0.15118,
-        "thr_defek": 0.15602,
-        "tekstur_fresh": 415.75,
-        "thr_tekstur": 1893.37,
-        "thr_bercak": 6.62,
+        "defek_fresh": 0.14273,
+        "thr_defek": 0.15442,
+        "tekstur_fresh": 392.86,
+        "thr_tekstur": 1938.12,
+        "thr_bercak": 6.71,
     },
 }
 
@@ -114,27 +114,57 @@ def build_grad_model(model: keras.Model) -> keras.Model:
     return keras.Model(inputs, [feat, outputs], name="gradcam_model")
 
 
+def make_inference_fns(model: keras.Model, grad_model: keras.Model):
+    @tf.function(
+        input_signature=[
+            tf.TensorSpec(shape=[None, IMG_SIZE, IMG_SIZE, 3], dtype=tf.float32),
+        ]
+    )
+    def predict_batch(batch_tensor: tf.Tensor) -> tf.Tensor:
+        out = model(batch_tensor, training=False)
+        return out[0] if isinstance(out, (list, tuple)) else out
+
+    @tf.function(
+        input_signature=[
+            tf.TensorSpec(shape=[1, IMG_SIZE, IMG_SIZE, 3], dtype=tf.float32),
+            tf.TensorSpec(shape=[], dtype=tf.int32),
+        ]
+    )
+    def gradcam_step(image_tensor: tf.Tensor, target_idx: tf.Tensor) -> tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
+        with tf.GradientTape() as tape:
+            conv, preds = grad_model(image_tensor, training=False)
+            if isinstance(conv, (list, tuple)):
+                conv = conv[0]
+            if isinstance(preds, (list, tuple)):
+                preds = preds[0]
+            resolved_idx = tf.cond(
+                target_idx < 0,
+                lambda: tf.cast(tf.argmax(preds[0]), tf.int32),
+                lambda: target_idx,
+            )
+            score = preds[:, resolved_idx]
+        grads = tape.gradient(score, conv)
+        if grads is None:
+            heat = tf.zeros(tf.shape(conv)[1:3], dtype=tf.float32)
+        else:
+            pooled = tf.reduce_mean(grads, axis=(0, 1, 2))
+            heat = tf.reduce_sum(conv[0] * pooled, axis=-1)
+            heat = tf.maximum(heat, 0.0)
+            heat = heat / (tf.reduce_max(heat) + 1e-8)
+        return heat, resolved_idx, preds[0]
+
+    return predict_batch, gradcam_step
+
+
 def run_gradcam(rgb01: np.ndarray, class_idx: int | None = None) -> tuple[np.ndarray, int, np.ndarray]:
     tensor = tf.convert_to_tensor(rgb01[None], dtype=tf.float32)
-    with tf.GradientTape() as tape:
-        conv, preds = state["grad_model"](tensor, training=False)
-        if isinstance(conv, (list, tuple)):
-            conv = conv[0]
-        if isinstance(preds, (list, tuple)):
-            preds = preds[0]
-        if class_idx is None:
-            class_idx = int(tf.argmax(preds[0]))
-        score = preds[:, class_idx]
-    grads = tape.gradient(score, conv)
-    if grads is None:
-        heat = np.zeros(conv.shape[1:3], dtype=np.float32)
-    else:
-        pooled = tf.reduce_mean(grads, axis=(0, 1, 2))
-        heat = tf.reduce_sum(conv[0] * pooled, axis=-1)
-        heat = tf.maximum(heat, 0.0)
-        heat = heat / (tf.reduce_max(heat) + 1e-8)
-        heat = heat.numpy()
-    return heat, class_idx, np.asarray(preds[0], dtype=np.float32)
+    idx_tensor = tf.constant(-1 if class_idx is None else int(class_idx), dtype=tf.int32)
+    heat, resolved_idx, preds = state["gradcam_fn"](tensor, idx_tensor)
+    return (
+        np.asarray(heat.numpy(), dtype=np.float32),
+        int(resolved_idx.numpy()),
+        np.asarray(preds.numpy(), dtype=np.float32),
+    )
 
 
 def detect_ood_and_candidates(bgr: np.ndarray) -> tuple[bool, int, float]:
@@ -465,7 +495,7 @@ def tta_probabilities(image: Image.Image) -> np.ndarray:
         ) / 255.0
         for variant in variants
     ])
-    preds = state["model"].predict(batch, batch_size=10, verbose=0)
+    preds = state["predict_fn"](tf.convert_to_tensor(batch, dtype=tf.float32)).numpy()
     mean_p = preds.mean(axis=0)
     best_view = preds[preds.max(axis=1).argmax()]
     combined = 0.55 * mean_p + 0.45 * best_view
@@ -576,8 +606,16 @@ def load_resources() -> None:
     if not MODEL_PATH.exists():
         raise FileNotFoundError(f"Model tidak ditemukan: {MODEL_PATH}")
     model = keras.models.load_model(MODEL_PATH)
+    grad_model = build_grad_model(model)
+    predict_fn, gradcam_fn = make_inference_fns(model, grad_model)
+    # Warmup graph tracing once at startup so first user request has low latency
+    dummy = tf.zeros((1, IMG_SIZE, IMG_SIZE, 3), dtype=tf.float32)
+    _ = predict_fn(dummy)
+    _ = gradcam_fn(dummy, tf.constant(-1, dtype=tf.int32))
     state["model"] = model
-    state["grad_model"] = build_grad_model(model)
+    state["grad_model"] = grad_model
+    state["predict_fn"] = predict_fn
+    state["gradcam_fn"] = gradcam_fn
     state["model_name"] = MODEL_PATH.stem
     state["model_file"] = MODEL_PATH.name
 
