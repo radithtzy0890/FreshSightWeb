@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import collections
 import io
+import json
 import os
 import threading
 import time
@@ -69,6 +70,44 @@ CALIBRATION = {
 TTA_THRESHOLD = 0.80
 CONFIDENCE_RAGU_THRESHOLD = 0.60
 
+OOD_REF_PATH = Path(
+    os.environ.get("OOD_REF_PATH", BASE_DIR / "models" / "ood_reference_green_v2.npz")
+)
+INET_GATE_PATH = Path(
+    os.environ.get("INET_GATE_PATH", BASE_DIR / "models" / "imagenet_ood_gate.keras")
+)
+INET_INDEX_PATH = Path(
+    os.environ.get("INET_INDEX_PATH", BASE_DIR / "models" / "imagenet_class_index.json")
+)
+
+# Core target fruit classes in ImageNet-1k (strong positive confirmation of apple/banana/orange)
+CORE_INET_FRUITS = {"Granny_Smith", "banana", "orange", "lemon"}
+
+# Empirically calibrated on 1,578 real apple/banana/orange images (internal, AFQC, banana_overripe, Mendeley, Wikimedia)
+ALLOWED_INET_CLASSES = CORE_INET_FRUITS | {
+    "pomegranate",
+    "fig",
+    "hip",
+    "acorn",
+    "custard_apple",
+    "butternut_squash",
+    "spaghetti_squash",
+    "acorn_squash",
+    "buckeye",
+    "chestnut",
+    "earthstar",
+    "bolete",
+    "slug",
+    "bagel",
+    "croquet_ball",
+    "tennis_ball",
+    "ping-pong_ball",
+    "maraca",
+    "ocarina",
+    "scabbard",
+    "French_loaf",
+}
+
 state: dict[str, object] = {}
 inference_lock = threading.Lock()
 rate_limit_lock = threading.Lock()
@@ -111,7 +150,7 @@ def build_grad_model(model: keras.Model) -> keras.Model:
     if isinstance(y, (list, tuple)):
         y = y[0]
     outputs = model.get_layer("prediksi")(y)
-    return keras.Model(inputs, [feat, outputs], name="gradcam_model")
+    return keras.Model(inputs, [feat, y, outputs], name="gradcam_model")
 
 
 def make_inference_fns(model: keras.Model, grad_model: keras.Model):
@@ -130,11 +169,15 @@ def make_inference_fns(model: keras.Model, grad_model: keras.Model):
             tf.TensorSpec(shape=[], dtype=tf.int32),
         ]
     )
-    def gradcam_step(image_tensor: tf.Tensor, target_idx: tf.Tensor) -> tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
+    def gradcam_step(
+        image_tensor: tf.Tensor, target_idx: tf.Tensor
+    ) -> tuple[tf.Tensor, tf.Tensor, tf.Tensor, tf.Tensor]:
         with tf.GradientTape() as tape:
-            conv, preds = grad_model(image_tensor, training=False)
+            conv, gap_feat, preds = grad_model(image_tensor, training=False)
             if isinstance(conv, (list, tuple)):
                 conv = conv[0]
+            if isinstance(gap_feat, (list, tuple)):
+                gap_feat = gap_feat[0]
             if isinstance(preds, (list, tuple)):
                 preds = preds[0]
             resolved_idx = tf.cond(
@@ -151,20 +194,121 @@ def make_inference_fns(model: keras.Model, grad_model: keras.Model):
             heat = tf.reduce_sum(conv[0] * pooled, axis=-1)
             heat = tf.maximum(heat, 0.0)
             heat = heat / (tf.reduce_max(heat) + 1e-8)
-        return heat, resolved_idx, preds[0]
+        return heat, resolved_idx, preds[0], gap_feat[0]
 
     return predict_batch, gradcam_step
 
 
-def run_gradcam(rgb01: np.ndarray, class_idx: int | None = None) -> tuple[np.ndarray, int, np.ndarray]:
+def run_gradcam(
+    rgb01: np.ndarray, class_idx: int | None = None
+) -> tuple[np.ndarray, int, np.ndarray, np.ndarray]:
     tensor = tf.convert_to_tensor(rgb01[None], dtype=tf.float32)
     idx_tensor = tf.constant(-1 if class_idx is None else int(class_idx), dtype=tf.int32)
-    heat, resolved_idx, preds = state["gradcam_fn"](tensor, idx_tensor)
+    heat, resolved_idx, preds, gap_feat = state["gradcam_fn"](tensor, idx_tensor)
     return (
         np.asarray(heat.numpy(), dtype=np.float32),
         int(resolved_idx.numpy()),
         np.asarray(preds.numpy(), dtype=np.float32),
+        np.asarray(gap_feat.numpy(), dtype=np.float32),
     )
+
+
+def evaluate_dual_ood(
+    full_rgb01: np.ndarray,
+    gap_feat: np.ndarray,
+    probs: np.ndarray,
+    color_ood: bool,
+) -> tuple[bool, str, dict[str, object]]:
+    """Dual-Gate OOD rejection:
+    1) Embedding Cosine Similarity + Mahalanobis distance in fine-tuned 576-d GAP space;
+    2) Semantic ImageNet-1k veto (MobileNetV3Small) to reject non-target fruits and general objects.
+    """
+    metrics: dict[str, object] = {}
+    max_cos = 1.0
+    min_mahal = 0.0
+    conf = float(np.max(probs))
+
+    ood_ref = state.get("ood_ref")
+    if ood_ref is not None:
+        centroids = ood_ref["centroids"]
+        class_means = ood_ref["class_means"]
+        precision = ood_ref["precision"]
+        fn = gap_feat / (float(np.linalg.norm(gap_feat)) + 1e-8)
+        max_cos = float(np.max(centroids @ fn))
+        diffs = gap_feat[None, :] - class_means
+        mahals = np.sqrt(np.maximum(np.sum((diffs @ precision) * diffs, axis=1), 0.0))
+        min_mahal = float(np.min(mahals))
+        metrics["ood_max_cos"] = round(max_cos, 4)
+        metrics["ood_min_mahal"] = round(min_mahal, 2)
+
+    inet_top1_name = ""
+    inet_top1_prob = 0.0
+    non_allowed_top3_sum = 0.0
+    core_fruit_top3_sum = 0.0
+    inet_fn = state.get("inet_fn")
+    id_to_name = state.get("inet_id_to_name")
+    if inet_fn is not None and id_to_name is not None:
+        inp_255 = tf.convert_to_tensor((full_rgb01[None] * 255.0).astype(np.float32))
+        inet_probs = inet_fn(inp_255).numpy()[0]
+        top3_idx = np.argsort(-inet_probs)[:3]
+        inet_top1_name = str(id_to_name.get(int(top3_idx[0]), ""))
+        inet_top1_prob = float(inet_probs[top3_idx[0]])
+        non_allowed_top3_sum = float(
+            sum(
+                float(inet_probs[i])
+                for i in top3_idx
+                if str(id_to_name.get(int(i), "")) not in ALLOWED_INET_CLASSES
+            )
+        )
+        core_fruit_top3_sum = float(
+            sum(
+                float(inet_probs[i])
+                for i in top3_idx
+                if str(id_to_name.get(int(i), "")) in CORE_INET_FRUITS
+            )
+        )
+        metrics["inet_top1"] = inet_top1_name
+        metrics["inet_top1_prob"] = round(inet_top1_prob, 4)
+
+    if color_ood:
+        return True, "warna dan morfologi tidak cocok dengan buah apel, pisang, atau jeruk", metrics
+
+    # Strong positive confirmation from ImageNet-1k for core target fruits avoids false rejections on wild backgrounds
+    inet_confirms_target = (
+        (inet_top1_name in CORE_INET_FRUITS and inet_top1_prob >= 0.25)
+        or core_fruit_top3_sum >= 0.35
+    )
+
+    if inet_top1_name and inet_top1_name not in ALLOWED_INET_CLASSES:
+        pretty = inet_top1_name.replace("_", " ")
+        if inet_top1_prob >= 0.45:
+            return (
+                True,
+                f"objek teridentifikasi bukan apel, pisang, atau jeruk (indikasi: {pretty})",
+                metrics,
+            )
+        if inet_top1_prob >= 0.28 and (min_mahal > 19.0 or max_cos < 0.56 or conf < 0.80):
+            return (
+                True,
+                f"objek diduga di luar kategori buah target (indikasi: {pretty})",
+                metrics,
+            )
+        if non_allowed_top3_sum >= 0.50 and (min_mahal > 19.0 or max_cos < 0.62):
+            return (
+                True,
+                f"citra tidak dikenali sebagai apel, pisang, atau jeruk (indikasi: {pretty})",
+                metrics,
+            )
+
+    if ood_ref is not None and not inet_confirms_target:
+        if max_cos < 0.46 or min_mahal > 34.0 or (min_mahal > 27.0 and max_cos < 0.62):
+            return (
+                True,
+                f"fitur citra berada di luar distribusi buah target (kemiripan {max_cos:.2f}, jarak {min_mahal:.1f})",
+                metrics,
+            )
+
+    return False, "", metrics
 
 
 def detect_ood_and_candidates(bgr: np.ndarray) -> tuple[bool, int, float]:
@@ -318,6 +462,71 @@ def fruit_mask(bgr: np.ndarray) -> np.ndarray:
         mask = np.zeros_like(mask)
         cv2.ellipse(mask, (112, 112), (92, 92), 0, 0, 360, 255, -1)
     return mask > 0
+
+
+def suppress_fruit_sticker(bgr: np.ndarray) -> tuple[np.ndarray, bool]:
+    """Detect and inpaint compact non-biological blue/violet supermarket PLU stickers on fruit skin.
+
+    Triggers ONLY when a compact vivid blue/indigo/violet core (H in [100, 148], S > 85)
+    lies inside the fruit region, avoiding any interference with green/white Penicillium mold.
+    """
+    h_img, w_img = bgr.shape[:2]
+    img_area = float(h_img * w_img)
+    hsv = cv2.cvtColor(bgr, cv2.COLOR_BGR2HSV)
+    hue, sat, val = hsv[..., 0], hsv[..., 1], hsv[..., 2]
+
+    # Vivid non-biological blue/indigo/violet ink typical of supermarket PLU stickers
+    blue_core = ((hue >= 100) & (hue <= 148) & (sat > 85) & (val > 45)).astype(np.uint8) * 255
+    if int(np.count_nonzero(blue_core)) < int(0.0015 * img_area):
+        return bgr, False
+
+    fmask = fruit_mask(bgr)
+    # Keep only blue pixels inside the fruit body (eroded slightly from image borders)
+    border_ok = np.ones((h_img, w_img), dtype=bool)
+    margin = max(4, int(0.03 * min(h_img, w_img)))
+    border_ok[:margin, :] = False
+    border_ok[-margin:, :] = False
+    border_ok[:, :margin] = False
+    border_ok[:, -margin:] = False
+
+    seed = ((blue_core > 0) & fmask & border_ok).astype(np.uint8) * 255
+    seed = cv2.morphologyEx(seed, cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8), iterations=1)
+    contours, _ = cv2.findContours(seed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    sticker_mask = np.zeros((h_img, w_img), dtype=np.uint8)
+    for cnt in contours:
+        area = cv2.contourArea(cnt)
+        if area < 0.0015 * img_area or area > 0.10 * img_area:
+            continue
+        x, y, bw, bh = cv2.boundingRect(cnt)
+        # Local ROI around the vivid blue sticker core to capture its attached white barcode paper & dark bars
+        pad = max(8, int(0.45 * max(bw, bh)))
+        x1, y1 = max(0, x - pad), max(0, y - pad)
+        x2, y2 = min(w_img, x + bw + pad), min(h_img, y + bh + pad)
+        roi_h = hue[y1:y2, x1:x2]
+        roi_s = sat[y1:y2, x1:x2]
+        roi_v = val[y1:y2, x1:x2]
+        roi_sticker = (
+            ((roi_h >= 96) & (roi_h <= 152) & (roi_s > 50))
+            | ((roi_s < 55) & (roi_v > 150))
+            | ((roi_s < 65) & (roi_v < 120))
+        )
+        # Keep only the connected component touching the blue core
+        roi_u8 = (roi_sticker.astype(np.uint8) * 255)
+        roi_u8 = cv2.morphologyEx(roi_u8, cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8), iterations=2)
+        n_cc, cc_labels, cc_stats, _ = cv2.connectedComponentsWithStats(roi_u8, 8)
+        core_in_roi = seed[y1:y2, x1:x2] > 0
+        for cid in range(1, n_cc):
+            cc_mask = cc_labels == cid
+            if np.any(cc_mask & core_in_roi) and cc_stats[cid, cv2.CC_STAT_AREA] <= 0.14 * img_area:
+                sticker_mask[y1:y2, x1:x2][cc_mask] = 255
+
+    if int(np.count_nonzero(sticker_mask)) == 0:
+        return bgr, False
+
+    sticker_mask = cv2.dilate(sticker_mask, np.ones((5, 5), np.uint8), iterations=1)
+    cleaned = cv2.inpaint(bgr, sticker_mask, 5, cv2.INPAINT_TELEA)
+    return cleaned, True
 
 
 def defect_mask(bgr: np.ndarray, mask: np.ndarray) -> np.ndarray:
@@ -542,11 +751,14 @@ def build_explanation(
     features: dict[str, object],
     focus: str,
     is_ood: bool = False,
+    ood_reason: str = "",
 ) -> str:
     if is_ood:
+        detail = f" ({ood_reason})." if ood_reason else "."
         return (
-            "Sistem tidak mendeteksi objek buah apel, pisang, atau jeruk yang valid pada foto ini. "
-            "Pastikan foto menampilkan satu buah utuh di tengah bingkai dengan pencahayaan cukup dan latar polos."
+            f"Sistem tidak mendeteksi buah apel, pisang, atau jeruk yang valid pada foto ini{detail} "
+            "FreshSight hanya mendukung klasifikasi kesegaran apel, pisang, dan jeruk. "
+            "Pastikan foto menampilkan satu buah target utuh di tengah bingkai dengan pencahayaan cukup."
         )
 
     thresholds = CALIBRATION[fruit]
@@ -619,6 +831,29 @@ def load_resources() -> None:
     state["model_name"] = MODEL_PATH.stem
     state["model_file"] = MODEL_PATH.name
 
+    # Load Dual-Gate OOD resources (embedding centroids/Mahalanobis + ImageNet-1k semantic gate)
+    if OOD_REF_PATH.exists():
+        ref = np.load(OOD_REF_PATH)
+        state["ood_ref"] = {
+            "centroids": np.asarray(ref["centroids"], dtype=np.float32),
+            "class_means": np.asarray(ref["class_means"], dtype=np.float32),
+            "precision": np.asarray(ref["precision"], dtype=np.float32),
+        }
+    if INET_GATE_PATH.exists() and INET_INDEX_PATH.exists():
+        inet_model = keras.models.load_model(INET_GATE_PATH, compile=False)
+
+        @tf.function(
+            input_signature=[tf.TensorSpec(shape=[1, IMG_SIZE, IMG_SIZE, 3], dtype=tf.float32)]
+        )
+        def inet_predict(img255: tf.Tensor) -> tf.Tensor:
+            out = inet_model(img255, training=False)
+            return out[0] if isinstance(out, (list, tuple)) else out
+
+        _ = inet_predict(tf.zeros((1, IMG_SIZE, IMG_SIZE, 3), dtype=tf.float32))
+        idx_raw = json.loads(INET_INDEX_PATH.read_text(encoding="utf-8"))
+        state["inet_fn"] = inet_predict
+        state["inet_id_to_name"] = {int(k): v[1] for k, v in idx_raw.items()}
+
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -627,7 +862,7 @@ async def lifespan(_: FastAPI):
     state.clear()
 
 
-app = FastAPI(title="FreshSight API", version="1.1.0", lifespan=lifespan)
+app = FastAPI(title="FreshSight API", version="1.2.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -636,7 +871,9 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://localhost:8000",
         "http://127.0.0.1:8000",
+        "http://freshsightweb.test",
     ],
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1|freshsightweb\.test)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -677,13 +914,24 @@ def _sync_infer(pil_image: Image.Image) -> dict[str, object]:
             analysis_rgb01 = full_rgb01
             analysis_bgr = full_bgr
 
-        # Single forward + gradient pass via grad_model
-        heat, class_idx, base_probs = run_gradcam(analysis_rgb01, class_idx=None)
+        # Suppress compact non-biological supermarket PLU stickers (vivid blue/violet) so they aren't mistaken for rot
+        cleaned_bgr, sticker_removed = suppress_fruit_sticker(analysis_bgr)
+        if sticker_removed:
+            analysis_bgr = cleaned_bgr
+            analysis_rgb01 = cv2.cvtColor(cleaned_bgr, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
+
+        # Single forward + gradient + GAP embedding pass via grad_model
+        heat, class_idx, base_probs, gap_feat = run_gradcam(analysis_rgb01, class_idx=None)
         probabilities = base_probs
         used_tta = False
 
         if not used_crop and float(base_probs.max()) < TTA_THRESHOLD:
-            tta_probs = tta_probabilities(pil_image)
+            tta_input = (
+                Image.fromarray(cv2.cvtColor(analysis_bgr, cv2.COLOR_BGR2RGB))
+                if sticker_removed
+                else pil_image
+            )
+            tta_probs = tta_probabilities(tta_input)
             tta_peak = float(tta_probs.max())
             base_peak = float(base_probs.max())
             if tta_peak > base_peak and (tta_peak - base_peak >= 0.12 or tta_peak >= 0.80):
@@ -692,8 +940,13 @@ def _sync_infer(pil_image: Image.Image) -> dict[str, object]:
 
         features = analyze_defects(analysis_bgr)
         features["fruit_count"] = full_fruit_count
-        is_ood = bool(is_full_ood and features.get("is_ood", False))
+        color_ood = bool(is_full_ood and features.get("is_ood", False))
+        is_ood, ood_reason, ood_metrics = evaluate_dual_ood(
+            full_rgb01, gap_feat, probabilities, color_ood
+        )
         features["is_ood"] = is_ood
+        if is_ood:
+            features["fruit_count"] = 0
 
         if not is_ood:
             calibrated = calibrate_low_confidence_with_defects(probabilities, features)
@@ -703,12 +956,12 @@ def _sync_infer(pil_image: Image.Image) -> dict[str, object]:
         new_class_idx = int(np.argmax(probabilities))
         if new_class_idx != class_idx:
             class_idx = new_class_idx
-            heat, _, _ = run_gradcam(analysis_rgb01, class_idx=class_idx)
+            heat, _, _, _ = run_gradcam(analysis_rgb01, class_idx=class_idx)
 
     inference_ms = round((time.perf_counter() - started) * 1000, 2)
 
     label = CLASSES[class_idx]
-    confidence = float(probabilities[class_idx])
+    confidence = 0.0 if is_ood else float(probabilities[class_idx])
     fruit = label.split("_")[1]
     is_rotten = not label.startswith("fresh")
 
@@ -735,18 +988,21 @@ def _sync_infer(pil_image: Image.Image) -> dict[str, object]:
         features,
         human_region(focus),
         is_ood=is_ood,
+        ood_reason=ood_reason,
     )
     gradcam = overlay_heatmap(analysis_rgb01, heat)
     preview = defect_overlay(analysis_rgb01, features["defect"])
 
     return {
-        "label": label,
+        "label": "tidak_terdeteksi" if is_ood else label,
         "fruit": fruit,
-        "freshness": "fresh" if label.startswith("fresh") else "rotten",
+        "freshness": "unknown" if is_ood else ("fresh" if label.startswith("fresh") else "rotten"),
         "verdict": verdict,
         "is_ood": is_ood,
+        "ood_reason": ood_reason,
+        "ood_metrics": ood_metrics,
         "confidence": confidence,
-        "probs": {name: float(probabilities[index]) for index, name in enumerate(CLASSES)},
+        "probs": {name: (0.0 if is_ood else float(probabilities[index])) for index, name in enumerate(CLASSES)},
         "features": {
             "is_ood": is_ood,
             "fruit_count": int(features["fruit_count"]),

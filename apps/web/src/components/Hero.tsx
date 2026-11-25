@@ -9,7 +9,12 @@ import {
 import { sound } from '../services/soundEngine';
 import { AnalysisResultCard } from './AnalysisResultCard';
 
-const API_BASE = (import.meta.env.VITE_PREDICT_API_URL || '').replace(/\/$/, '');
+const DEFAULT_LOCAL_API =
+  typeof window !== 'undefined' &&
+  /^(localhost|127\.0\.0\.1|freshsightweb\.test)$/i.test(window.location.hostname)
+    ? 'http://127.0.0.1:8001'
+    : '';
+const API_BASE = (import.meta.env.VITE_PREDICT_API_URL || DEFAULT_LOCAL_API).replace(/\/$/, '');
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
 function imageToDataUrl(img: HTMLImageElement, maxDim: number, quality: number): string {
@@ -50,7 +55,13 @@ async function analyzeFile(file: File) {
       return { ...result, img: photo, thumb };
     } catch (apiErr) {
       if (API_BASE) {
-        throw apiErr;
+        const msg =
+          apiErr instanceof TypeError
+            ? `Backend AI (${API_BASE}) tidak aktif. Jalankan uvicorn app:app --host 127.0.0.1 --port 8001 di folder backend.`
+            : apiErr instanceof Error
+            ? apiErr.message
+            : 'Gagal menghubungi backend AI.';
+        throw new Error(msg);
       }
       return runAnalysis(file, 'browser');
     }

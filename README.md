@@ -17,10 +17,12 @@ terukur. Foto diproses oleh model MobileNetV3Small yang berjalan di server infer
 - Upload foto/galeri, kamera web, dan kamera langsung HP.
 - Klasifikasi 6 kelas kesegaran buah.
 - **Grad-CAM** dan **area cacat** (mask) untuk explainability.
-- **Auto-crop buah kecil** pada latar ramai (komponen merah/hijau).
-- **Adaptive TTA** (flip + center-crop) saat keyakinan awal rendah.
-- Status **RAGU** jika keyakinan < 60%.
-- **Peringatan multi-buah** jika terdeteksi lebih dari satu kandidat buah.
+- **Deteksi non-buah (Dual-Gate OOD)**: menolak gambar di luar 3 buah target (apel, pisang, jeruk) dengan status `tidak_terdeteksi` melalui kombinasi jarak embedding 576-d (Cosine & Mahalanobis) dan verifikasi semantik ImageNet-1k offline.
+- **Supresi stiker PLU supermarket**: mendeteksi dan membersihkan stiker barcode biru/ungu pekat non-biologis pada kulit buah secara lokal (`cv2.inpaint`) sebelum klasifikasi agar tidak keliru terbaca sebagai bercak busuk, tanpa menyentuh jamur alami.
+- **Auto-crop buah kecil** pada latar ramai (komponen merah/oranye/kuning/hijau).
+- **Adaptive TTA** (flip + rotasi + center-crop) saat keyakinan awal rendah.
+- **Koneksi backend otomatis & proteksi fallback**: pada `localhost`, `127.0.0.1`, dan `freshsightweb.test`, frontend otomatis terhubung ke `http://127.0.0.1:8001` tanpa perlu `.env.local`, dan menampilkan pesan error eksplisit bila backend tidak aktif (tidak jatuh diam-diam ke heuristik warna offline).
+- Status **RAGU** jika keyakinan < 60% atau terdeteksi > 1 kandidat buah.
 - Riwayat analisis tersimpan di `localStorage` (tanpa server).
 - Halaman terpisah: Beranda, Cara Kerja, Model & Data, Riwayat.
 - Detail hasil dalam modal (foto/Grad-CAM/area cacat, probabilitas, ciri terukur, unduh ringkasan).
@@ -39,12 +41,15 @@ terukur. Foto diproses oleh model MobileNetV3Small yang berjalan di server infer
 
 ```text
 backend/
-  app.py                         # FastAPI: /v1/health, /v1/predict, Grad-CAM, fitur defek
+  app.py                         # FastAPI: /v1/health, /v1/predict, Dual-Gate OOD, supresi stiker PLU, Grad-CAM, fitur defek
   requirements.txt
   models/
     mobilenetv3small_external_green_v2.keras             # model aktif (4,13 MB)
     mobilenetv3small_external_green_v2_float16.tflite    # ekspor edge float16 (1,82 MiB, 2,48 ms)
     mobilenetv3small_external_recalibrated.keras         # model final naskah jurnal (4,13 MB)
+    ood_reference_green_v2.npz                           # statistik embedding 576-d untuk Cosine/Mahalanobis OOD (1,20 MB)
+    imagenet_ood_gate.keras                              # MobileNetV3Small ImageNet-1k offline untuk gerbang OOD semantik (10,30 MB)
+    imagenet_class_index.json                            # indeks 1.000 kelas ImageNet offline
   tools/
     recalibrate_orange_head.py   # script recalibration head (path dataset lokal)
     evaluate_all.py              # evaluasi menyeluruh (path dataset lokal)
@@ -92,15 +97,17 @@ cd backend
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-uvicorn app:app --host 127.0.0.1 --port 8001
+python -m uvicorn app:app --host 127.0.0.1 --port 8001
 ```
 
-Model aktif sudah ada di `backend/models/mobilenetv3small_external_green_v2.keras`.
+Model aktif sudah ada di `backend/models/mobilenetv3small_external_green_v2.keras`,
+bersama aset OOD offline (`ood_reference_green_v2.npz`, `imagenet_ood_gate.keras`,
+dan `imagenet_class_index.json`).
 Jika ingin memakai model lain:
 
 ```powershell
 $env:MODEL_PATH = "C:\path\ke\model.keras"
-uvicorn app:app --host 127.0.0.1 --port 8001
+python -m uvicorn app:app --host 127.0.0.1 --port 8001
 ```
 
 Cek backend:
@@ -115,11 +122,18 @@ Dari root proyek:
 
 ```powershell
 npm install
-Set-Content apps\web\.env.local "VITE_PREDICT_API_URL=http://127.0.0.1:8001"
 npm run dev
 ```
 
-Buka **http://localhost:5173**.
+Secara bawaan, frontend di `localhost`, `127.0.0.1`, atau `freshsightweb.test` otomatis
+menghubungi `http://127.0.0.1:8001`. Jika backend berjalan di host/port lain, atur
+`apps\web\.env.local`:
+
+```powershell
+Set-Content apps\web\.env.local "VITE_PREDICT_API_URL=http://127.0.0.1:8001"
+```
+
+Buka **http://localhost:5173**. Pastikan backend port `8001` aktif sebelum memindai gambar.
 
 ### 4. Build produksi
 
@@ -165,16 +179,17 @@ curl.exe -X POST http://127.0.0.1:8001/v1/predict -F "image=@C:\path\foto.jpg"
 
 Field respons utama:
 
-- `label`, `fruit`, `freshness`, `confidence`
+- `label`, `fruit`, `freshness`, `verdict` (`segar` | `busuk` | `ragu` | `tidak_terdeteksi`), `confidence`
+- `is_ood`, `ood_reason`, `ood_metrics` (`max_cos`, `min_mahal`, `inet_top1`, `inet_prob`)
 - `probs`: probabilitas 6 kelas
-- `features`: `fruit_count`, `rasio_defek`, `jumlah_bercak`, `bercak_terbesar`,
+- `features`: `is_ood`, `fruit_count`, `rasio_defek`, `jumlah_bercak`, `bercak_terbesar`,
   `lokasi_bercak`, `fokus_gradcam`, `jarak_warna`, `tekstur`
 - `images`: `gradcam_overlay`, `defect_mask` (base64 PNG)
 - `explanation`, `inference_ms`, `tta`, `crop_used`, `model`
 
-CORS mengizinkan `http://localhost:5173`, `http://127.0.0.1:5173`,
-`http://localhost:8000`, dan `http://127.0.0.1:8000`. Ubah `allow_origins`
-di `backend/app.py` jika frontend berjalan di origin lain.
+CORS mengizinkan semua port pada `http(s)://localhost`, `http(s)://127.0.0.1`, dan
+`http(s)://freshsightweb.test` (via `allow_origin_regex`). Tambahkan origin lain melalui
+`allow_origins` di `backend/app.py` jika di-deploy ke domain lain.
 
 ## Model
 
@@ -183,8 +198,9 @@ di `backend/app.py` jika frontend berjalan di origin lain.
 - Input: 224×224×3, skala 0–1, dengan `Rescaling(2, -1)` internal (menormalkan piksel ke `[-1, 1]`).
 - Inferensi API memakai `@tf.function` (*graph mode* + *startup warmup*) sehingga latensi klasifikasi + Grad-CAM + analisis defek turun menjadi **~15–18 ms** (warm CPU).
 - Koreksi orientasi EXIF otomatis (`ImageOps.exif_transpose`) untuk foto kamera ponsel.
-- Deteksi non-buah (OOD): menolak objek di luar spektrum/morfologi buah dengan status `tidak_terdeteksi`.
-- Grad-CAM: gradien kelas target terhadap feature map 7×7×576 dalam satu *forward-gradient pass* terpadu.
+- Deteksi non-buah (**Dual-Gate OOD**): menggabungkan kemiripan embedding 576-d (`ood_reference_green_v2.npz`, Cosine Similarity & jarak Mahalanobis) dengan gerbang semantik ImageNet-1k offline (`imagenet_ood_gate.keras`) serta cek morfologi warna. Pada verifikasi regresi: **10/10 (100%)** gambar non-buah/OOD ditolak sebagai `tidak_terdeteksi`, dengan **0% false rejection** pada 60 sampel test internal dan 24 sampel jeruk Mendeley (segar/hijau/berjamur).
+- Supresi stiker PLU (`suppress_fruit_sticker`): membersihkan stiker barcode biru/indigo/ungu pekat non-biologis pada kulit buah dengan `cv2.inpaint` (`INPAINT_TELEA`) sebelum inferensi dan analisis defek; terverifikasi memulihkan prediksi apel segar berstiker menjadi `fresh_apple` (99,90%) dengan **0** pemicu palsu pada jeruk berjamur.
+- Grad-CAM: gradien kelas target terhadap feature map 7×7×576 sekaligus ekstraksi fitur GAP 576-d dalam satu *forward-gradient pass* terpadu.
 - Auto-crop: komponen buah merah/oranye/kuning/hijau yang kecil (<25% frame) dipakai untuk
   klasifikasi/Grad-CAM/fitur; buah close-up memakai frame penuh.
 - TTA adaptif (flip + rotasi 90°/180°/270° + center-crop): aktif saat keyakinan penuh < 80%.
