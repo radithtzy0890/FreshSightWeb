@@ -17,7 +17,7 @@ terukur. Foto diproses oleh model MobileNetV3Small yang berjalan di server infer
 - Upload foto/galeri, kamera web, dan kamera langsung HP.
 - Klasifikasi 6 kelas kesegaran buah.
 - **Grad-CAM** dan **area cacat** (mask) untuk explainability.
-- **Deteksi non-buah (Dual-Gate OOD)**: menolak gambar di luar 3 buah target (apel, pisang, jeruk) dengan status `tidak_terdeteksi` melalui kombinasi jarak embedding 576-d (Cosine & Mahalanobis) dan verifikasi semantik ImageNet-1k offline.
+- **Deteksi non-buah & buah non-target (Dual-Gate OOD + MobileCLIP2-S0)**: menolak gambar di luar 3 buah target (baik buah lain seperti alpukat, jambu biji, semangka, durian, mangga, pepaya, melon, labu, maupun objek/screenshot/grafik/pola non-buah) dengan status `tidak_terdeteksi` melalui kombinasi jarak embedding 576-d (Cosine & Mahalanobis) dan verifikasi semantik *open-vocabulary* zero-shot MobileCLIP2-S0 ONNX offline.
 - **Supresi stiker PLU supermarket**: mendeteksi dan membersihkan stiker barcode biru/ungu pekat non-biologis pada kulit buah secara lokal (`cv2.inpaint`) sebelum klasifikasi agar tidak keliru terbaca sebagai bercak busuk, tanpa menyentuh jamur alami.
 - **Auto-crop buah kecil** pada latar ramai (komponen merah/oranye/kuning/hijau).
 - **Adaptive TTA** (flip + rotasi + center-crop) saat keyakinan awal rendah.
@@ -48,8 +48,8 @@ backend/
     mobilenetv3small_external_green_v2_float16.tflite    # ekspor edge float16 (1,82 MiB, 2,48 ms)
     mobilenetv3small_external_recalibrated.keras         # model final naskah jurnal (4,13 MB)
     ood_reference_green_v2.npz                           # statistik embedding 576-d untuk Cosine/Mahalanobis OOD (1,20 MB)
-    imagenet_ood_gate.keras                              # MobileNetV3Small ImageNet-1k offline untuk gerbang OOD semantik (10,30 MB)
-    imagenet_class_index.json                            # indeks 1.000 kelas ImageNet offline
+    mobileclip2_s0_vision.onnx                           # MobileCLIP2-S0 vision encoder ONNX offline untuk gerbang OOD open-vocabulary (43,45 MB)
+    mobileclip2_fruit_prompts.npz                        # 67 embedding teks prompt buah, sayur & non-buah pra-komputasi (123 KB)
   tools/
     recalibrate_orange_head.py   # script recalibration head (path dataset lokal)
     evaluate_all.py              # evaluasi menyeluruh (path dataset lokal)
@@ -101,8 +101,8 @@ python -m uvicorn app:app --host 127.0.0.1 --port 8001
 ```
 
 Model aktif sudah ada di `backend/models/mobilenetv3small_external_green_v2.keras`,
-bersama aset OOD offline (`ood_reference_green_v2.npz`, `imagenet_ood_gate.keras`,
-dan `imagenet_class_index.json`).
+bersama aset OOD offline (`ood_reference_green_v2.npz`, `mobileclip2_s0_vision.onnx`,
+dan `mobileclip2_fruit_prompts.npz`).
 Jika ingin memakai model lain:
 
 ```powershell
@@ -180,7 +180,7 @@ curl.exe -X POST http://127.0.0.1:8001/v1/predict -F "image=@C:\path\foto.jpg"
 Field respons utama:
 
 - `label`, `fruit`, `freshness`, `verdict` (`segar` | `busuk` | `ragu` | `tidak_terdeteksi`), `confidence`
-- `is_ood`, `ood_reason`, `ood_metrics` (`max_cos`, `min_mahal`, `inet_top1`, `inet_prob`)
+- `is_ood`, `ood_reason`, `ood_metrics` (`ood_max_cos`, `ood_min_mahal`, `clip_target`, `clip_other`, `clip_margin`)
 - `probs`: probabilitas 6 kelas
 - `features`: `is_ood`, `fruit_count`, `rasio_defek`, `jumlah_bercak`, `bercak_terbesar`,
   `lokasi_bercak`, `fokus_gradcam`, `jarak_warna`, `tekstur`
@@ -198,7 +198,7 @@ CORS mengizinkan semua port pada `http(s)://localhost`, `http(s)://127.0.0.1`, d
 - Input: 224×224×3, skala 0–1, dengan `Rescaling(2, -1)` internal (menormalkan piksel ke `[-1, 1]`).
 - Inferensi API memakai `@tf.function` (*graph mode* + *startup warmup*) sehingga latensi klasifikasi + Grad-CAM + analisis defek turun menjadi **~15–18 ms** (warm CPU).
 - Koreksi orientasi EXIF otomatis (`ImageOps.exif_transpose`) untuk foto kamera ponsel.
-- Deteksi non-buah (**Dual-Gate OOD**): menggabungkan kemiripan embedding 576-d (`ood_reference_green_v2.npz`, Cosine Similarity & jarak Mahalanobis) dengan gerbang semantik ImageNet-1k offline (`imagenet_ood_gate.keras`) serta cek morfologi warna. Pada verifikasi regresi: **10/10 (100%)** gambar non-buah/OOD ditolak sebagai `tidak_terdeteksi`, dengan **0% false rejection** pada 60 sampel test internal dan 24 sampel jeruk Mendeley (segar/hijau/berjamur).
+- Deteksi non-buah & buah non-target (**Dual-Gate OOD + MobileCLIP2-S0**): menggabungkan kemiripan embedding 576-d (`ood_reference_green_v2.npz`, Cosine Similarity & jarak Mahalanobis) dengan gerbang *open-vocabulary zero-shot* **MobileCLIP2-S0** (`mobileclip2_s0_vision.onnx` + 67 prompt pra-komputasi di `mobileclip2_fruit_prompts.npz`, dijalankan via `onnxruntime` CPU ~35–40 ms) serta cek morfologi warna. Pada verifikasi end-to-end: **13/13 (100%)** buah/sayur non-target (labu, pepaya, mangga, melon, semangka busuk, jambu busuk, durian belah, jambu segar, alpukat, kentang, pir Asia, manggis, terong) dan **10/10 (100%)** gambar non-buah/far-OOD ditolak sebagai `tidak_terdeteksi`, dengan penerimaan **98,9% (174/176)** pada test internal dan **96,7% (58/60)** pada jeruk Mendeley.
 - Supresi stiker PLU (`suppress_fruit_sticker`): membersihkan stiker barcode biru/indigo/ungu pekat non-biologis pada kulit buah dengan `cv2.inpaint` (`INPAINT_TELEA`) sebelum inferensi dan analisis defek; terverifikasi memulihkan prediksi apel segar berstiker menjadi `fresh_apple` (99,90%) dengan **0** pemicu palsu pada jeruk berjamur.
 - Grad-CAM: gradien kelas target terhadap feature map 7×7×576 sekaligus ekstraksi fitur GAP 576-d dalam satu *forward-gradient pass* terpadu.
 - Auto-crop: komponen buah merah/oranye/kuning/hijau yang kecil (<25% frame) dipakai untuk

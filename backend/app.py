@@ -12,6 +12,7 @@ import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import onnxruntime as ort  # Import before tensorflow/keras on Windows to avoid native DLL load-order clash
 import cv2
 import keras
 import numpy as np
@@ -103,40 +104,13 @@ CONFIDENCE_RAGU_THRESHOLD = 0.60
 OOD_REF_PATH = Path(
     os.environ.get("OOD_REF_PATH", BASE_DIR / "models" / "ood_reference_green_v2.npz")
 )
-INET_GATE_PATH = Path(
-    os.environ.get("INET_GATE_PATH", BASE_DIR / "models" / "imagenet_ood_gate.keras")
+CLIP_VISION_PATH = Path(
+    os.environ.get("CLIP_VISION_PATH", BASE_DIR / "models" / "mobileclip2_s0_vision.onnx")
 )
-INET_INDEX_PATH = Path(
-    os.environ.get("INET_INDEX_PATH", BASE_DIR / "models" / "imagenet_class_index.json")
+CLIP_PROMPTS_PATH = Path(
+    os.environ.get("CLIP_PROMPTS_PATH", BASE_DIR / "models" / "mobileclip2_fruit_prompts.npz")
 )
-
-# Core target fruit classes in ImageNet-1k (strong positive confirmation of apple/banana/orange)
-CORE_INET_FRUITS = {"Granny_Smith", "banana", "orange", "lemon"}
-
-# Empirically calibrated on 1,578 real apple/banana/orange images (internal, AFQC, banana_overripe, Mendeley, Wikimedia)
-ALLOWED_INET_CLASSES = CORE_INET_FRUITS | {
-    "pomegranate",
-    "fig",
-    "hip",
-    "acorn",
-    "custard_apple",
-    "butternut_squash",
-    "spaghetti_squash",
-    "acorn_squash",
-    "buckeye",
-    "chestnut",
-    "earthstar",
-    "bolete",
-    "slug",
-    "bagel",
-    "croquet_ball",
-    "tennis_ball",
-    "ping-pong_ball",
-    "maraca",
-    "ocarina",
-    "scabbard",
-    "French_loaf",
-}
+CLIP_IMG_SIZE = 256
 
 state: dict[str, object] = {}
 inference_lock = threading.Lock()
@@ -243,20 +217,36 @@ def run_gradcam(
     )
 
 
+def preprocess_clip_image(pil_image: Image.Image) -> np.ndarray:
+    """MobileCLIP2-S0 vision preprocessing: shortest-edge 256 resize, center crop, [0, 1] CHW float32."""
+    img = pil_image.convert("RGB")
+    width, height = img.size
+    scale = float(CLIP_IMG_SIZE) / max(min(width, height), 1)
+    nw = max(CLIP_IMG_SIZE, int(round(width * scale)))
+    nh = max(CLIP_IMG_SIZE, int(round(height * scale)))
+    img = img.resize((nw, nh), Image.Resampling.BILINEAR)
+    left = (nw - CLIP_IMG_SIZE) // 2
+    top = (nh - CLIP_IMG_SIZE) // 2
+    img = img.crop((left, top, left + CLIP_IMG_SIZE, top + CLIP_IMG_SIZE))
+    arr = np.asarray(img, dtype=np.float32) / 255.0
+    return arr.transpose(2, 0, 1)[np.newaxis, ...].astype(np.float32)
+
+
 def evaluate_dual_ood(
-    full_rgb01: np.ndarray,
+    pil_image: Image.Image,
     gap_feat: np.ndarray,
     probs: np.ndarray,
     color_ood: bool,
 ) -> tuple[bool, str, dict[str, object]]:
     """Dual-Gate OOD rejection:
     1) Embedding Cosine Similarity + Mahalanobis distance in fine-tuned 576-d GAP space;
-    2) Semantic ImageNet-1k veto (MobileNetV3Small) to reject non-target fruits and general objects.
+    2) Open-vocabulary MobileCLIP2-S0 zero-shot semantic gate (54 precomputed fruit & non-fruit prompts)
+       that recognizes non-target fruits (avocado, guava, watermelon, durian, mango, papaya, melon, pumpkin, etc.)
+       as well as general non-fruit objects, screenshots, charts, and noise.
     """
     metrics: dict[str, object] = {}
     max_cos = 1.0
     min_mahal = 0.0
-    conf = float(np.max(probs))
 
     ood_ref = state.get("ood_ref")
     if ood_ref is not None:
@@ -271,66 +261,58 @@ def evaluate_dual_ood(
         metrics["ood_max_cos"] = round(max_cos, 4)
         metrics["ood_min_mahal"] = round(min_mahal, 2)
 
-    inet_top1_name = ""
-    inet_top1_prob = 0.0
-    non_allowed_top3_sum = 0.0
-    core_fruit_top3_sum = 0.0
-    inet_fn = state.get("inet_fn")
-    id_to_name = state.get("inet_id_to_name")
-    if inet_fn is not None and id_to_name is not None:
-        inp_255 = tf.convert_to_tensor((full_rgb01[None] * 255.0).astype(np.float32))
-        inet_probs = inet_fn(inp_255).numpy()[0]
-        top3_idx = np.argsort(-inet_probs)[:3]
-        inet_top1_name = str(id_to_name.get(int(top3_idx[0]), ""))
-        inet_top1_prob = float(inet_probs[top3_idx[0]])
-        non_allowed_top3_sum = float(
-            sum(
-                float(inet_probs[i])
-                for i in top3_idx
-                if str(id_to_name.get(int(i), "")) not in ALLOWED_INET_CLASSES
-            )
-        )
-        core_fruit_top3_sum = float(
-            sum(
-                float(inet_probs[i])
-                for i in top3_idx
-                if str(id_to_name.get(int(i), "")) in CORE_INET_FRUITS
-            )
-        )
-        metrics["inet_top1"] = inet_top1_name
-        metrics["inet_top1_prob"] = round(inet_top1_prob, 4)
-
     if color_ood:
         return True, "warna dan morfologi tidak cocok dengan buah apel, pisang, atau jeruk", metrics
 
-    # Strong positive confirmation from ImageNet-1k for core target fruits avoids false rejections on wild backgrounds
-    inet_confirms_target = (
-        (inet_top1_name in CORE_INET_FRUITS and inet_top1_prob >= 0.25)
-        or core_fruit_top3_sum >= 0.35
-    )
+    clip_sess = state.get("clip_sess")
+    clip_prompts = state.get("clip_prompts")
+    if clip_sess is not None and clip_prompts is not None:
+        pv = preprocess_clip_image(pil_image)
+        img_emb = clip_sess.run(None, {clip_prompts["input_name"]: pv})[0][0]
+        img_emb = img_emb / (float(np.linalg.norm(img_emb)) + 1e-8)
+        sims = clip_prompts["embeddings"] @ img_emb
 
-    if inet_top1_name and inet_top1_name not in ALLOWED_INET_CLASSES:
-        pretty = inet_top1_name.replace("_", " ")
-        if inet_top1_prob >= 0.45:
-            return (
-                True,
-                f"objek teridentifikasi bukan apel, pisang, atau jeruk (indikasi: {pretty})",
-                metrics,
-            )
-        if inet_top1_prob >= 0.28 and (min_mahal > 19.0 or max_cos < 0.56 or conf < 0.80):
-            return (
-                True,
-                f"objek diduga di luar kategori buah target (indikasi: {pretty})",
-                metrics,
-            )
-        if non_allowed_top3_sum >= 0.50 and (min_mahal > 19.0 or max_cos < 0.62):
-            return (
-                True,
-                f"citra tidak dikenali sebagai apel, pisang, atau jeruk (indikasi: {pretty})",
-                metrics,
-            )
+        target_mask = clip_prompts["is_target"]
+        non_target_mask = ~target_mask
+        t_idx = int(np.where(target_mask)[0][int(np.argmax(sims[target_mask]))])
+        nt_idx = int(np.where(non_target_mask)[0][int(np.argmax(sims[non_target_mask]))])
 
-    if ood_ref is not None and not inet_confirms_target:
+        best_t_label = str(clip_prompts["labels"][t_idx])
+        best_nt_label = str(clip_prompts["labels"][nt_idx])
+        best_nt_is_non_fruit = bool(clip_prompts["is_non_fruit"][nt_idx])
+        margin = float(sims[t_idx] - sims[nt_idx])
+
+        metrics["clip_target"] = best_t_label
+        metrics["clip_other"] = best_nt_label
+        metrics["clip_margin"] = round(margin, 4)
+
+        if margin < -0.020:
+            return (
+                True,
+                f"objek teridentifikasi sebagai {best_nt_label}, bukan apel, pisang, atau jeruk",
+                metrics,
+            )
+        if margin < 0.0 and best_nt_is_non_fruit:
+            return (
+                True,
+                f"objek teridentifikasi bukan buah target (indikasi: {best_nt_label})",
+                metrics,
+            )
+        if ood_ref is not None and margin < 0.012 and (min_mahal >= 18.8 or max_cos < 0.62):
+            return (
+                True,
+                f"citra diduga {best_nt_label} atau di luar kategori apel, pisang, dan jeruk",
+                metrics,
+            )
+        if ood_ref is not None and margin < 0.030 and (max_cos < 0.45 or min_mahal > 34.0):
+            return (
+                True,
+                f"fitur citra berada di luar distribusi buah target (kemiripan {max_cos:.2f}, jarak {min_mahal:.1f})",
+                metrics,
+            )
+        return False, "", metrics
+
+    if ood_ref is not None:
         if max_cos < 0.46 or min_mahal > 34.0 or (min_mahal > 27.0 and max_cos < 0.62):
             return (
                 True,
@@ -861,7 +843,7 @@ def load_resources() -> None:
     state["model_name"] = MODEL_PATH.stem
     state["model_file"] = MODEL_PATH.name
 
-    # Load Dual-Gate OOD resources (embedding centroids/Mahalanobis + ImageNet-1k semantic gate)
+    # Load Dual-Gate OOD resources (embedding centroids/Mahalanobis + MobileCLIP2-S0 zero-shot ONNX gate)
     if OOD_REF_PATH.exists():
         ref = np.load(OOD_REF_PATH)
         state["ood_ref"] = {
@@ -869,20 +851,19 @@ def load_resources() -> None:
             "class_means": np.asarray(ref["class_means"], dtype=np.float32),
             "precision": np.asarray(ref["precision"], dtype=np.float32),
         }
-    if INET_GATE_PATH.exists() and INET_INDEX_PATH.exists():
-        inet_model = keras.models.load_model(INET_GATE_PATH, compile=False)
-
-        @tf.function(
-            input_signature=[tf.TensorSpec(shape=[1, IMG_SIZE, IMG_SIZE, 3], dtype=tf.float32)]
-        )
-        def inet_predict(img255: tf.Tensor) -> tf.Tensor:
-            out = inet_model(img255, training=False)
-            return out[0] if isinstance(out, (list, tuple)) else out
-
-        _ = inet_predict(tf.zeros((1, IMG_SIZE, IMG_SIZE, 3), dtype=tf.float32))
-        idx_raw = json.loads(INET_INDEX_PATH.read_text(encoding="utf-8"))
-        state["inet_fn"] = inet_predict
-        state["inet_id_to_name"] = {int(k): v[1] for k, v in idx_raw.items()}
+    if CLIP_VISION_PATH.exists() and CLIP_PROMPTS_PATH.exists():
+        clip_sess = ort.InferenceSession(str(CLIP_VISION_PATH), providers=["CPUExecutionProvider"])
+        clip_in_name = clip_sess.get_inputs()[0].name
+        _ = clip_sess.run(None, {clip_in_name: np.zeros((1, 3, CLIP_IMG_SIZE, CLIP_IMG_SIZE), dtype=np.float32)})
+        p_npz = np.load(CLIP_PROMPTS_PATH, allow_pickle=False)
+        state["clip_sess"] = clip_sess
+        state["clip_prompts"] = {
+            "input_name": clip_in_name,
+            "labels": np.asarray(p_npz["labels"]),
+            "is_target": np.asarray(p_npz["is_target"], dtype=bool),
+            "is_non_fruit": np.asarray(p_npz["is_non_fruit"], dtype=bool),
+            "embeddings": np.asarray(p_npz["embeddings"], dtype=np.float32),
+        }
 
 
 @asynccontextmanager
@@ -972,7 +953,7 @@ def _sync_infer(pil_image: Image.Image) -> dict[str, object]:
         features["fruit_count"] = full_fruit_count
         color_ood = bool(is_full_ood and features.get("is_ood", False))
         is_ood, ood_reason, ood_metrics = evaluate_dual_ood(
-            full_rgb01, gap_feat, probabilities, color_ood
+            pil_image, gap_feat, probabilities, color_ood
         )
         features["is_ood"] = is_ood
         if is_ood:
