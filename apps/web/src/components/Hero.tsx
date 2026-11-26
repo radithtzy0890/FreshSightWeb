@@ -444,8 +444,8 @@ export const Hero: React.FC<HeroProps> = ({
               onClick={handleTriggerAnalysis}
               title="Klik stiker untuk analisis instan spesimen"
             >
-              {/* Rotating Circular Text Stamp (Peeking cleanly behind upper-right corner) */}
-              <div className="absolute -top-9 -right-9 sm:-top-10 sm:-right-11 w-24 h-24 sm:w-28 sm:h-28 z-0 pointer-events-none">
+              {/* Rotating Circular Text Stamp (In front at top-right corner) */}
+              <div className="absolute -top-10 -right-11 sm:-top-11 sm:-right-13 w-24 h-24 sm:w-28 sm:h-28 z-20 pointer-events-none">
                 <div className="w-full h-full relative flex items-center justify-center animate-ono-spin-slow">
                   <svg viewBox="0 0 100 100" className="w-full h-full overflow-visible">
                     <path

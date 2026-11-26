@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { Volume2, VolumeX, Menu, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { sound } from '../services/soundEngine';
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
@@ -14,7 +14,6 @@ const mobileNavClass = ({ isActive }: { isActive: boolean }) =>
   }`;
 
 export const Navbar: React.FC = () => {
-  const [soundActive, setSoundActive] = useState(() => sound.isEnabled());
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
 
@@ -22,55 +21,53 @@ export const Navbar: React.FC = () => {
     setMobileMenuOpen(false);
   }, [location.pathname]);
 
-  const handleSoundToggle = () => {
-    const next = sound.toggle();
-    setSoundActive(next);
-  };
-
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-[#FFC737]/95 backdrop-blur-md border-b-2 border-black transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-10 h-18 flex items-center justify-between gap-2">
 
-        {/* Desktop Left Nav */}
-        <nav className="hidden md:flex items-center gap-6 lg:gap-8" aria-label="Navigasi Utama">
-          <NavLink
-            to="/"
-            end
-            className={navClass}
-            onMouseEnter={() => sound.play('hover')}
-            onClick={() => sound.play('swoosh')}
-          >
-            Beranda
-          </NavLink>
-          <NavLink
-            to="/cara-kerja"
-            className={navClass}
-            onMouseEnter={() => sound.play('hover')}
-            onClick={() => sound.play('swoosh')}
-          >
-            Cara Kerja
-          </NavLink>
-          <NavLink
-            to="/model"
-            className={navClass}
-            onMouseEnter={() => sound.play('hover')}
-            onClick={() => sound.play('swoosh')}
-          >
-            Model
-          </NavLink>
-        </nav>
+        {/* Left Wrapper (balances centered logo) */}
+        <div className="flex-1 flex items-center">
+          {/* Desktop Left Nav */}
+          <nav className="hidden md:flex items-center gap-6 lg:gap-8" aria-label="Navigasi Utama">
+            <NavLink
+              to="/"
+              end
+              className={navClass}
+              onMouseEnter={() => sound.play('hover')}
+              onClick={() => sound.play('swoosh')}
+            >
+              Beranda
+            </NavLink>
+            <NavLink
+              to="/cara-kerja"
+              className={navClass}
+              onMouseEnter={() => sound.play('hover')}
+              onClick={() => sound.play('swoosh')}
+            >
+              Cara Kerja
+            </NavLink>
+            <NavLink
+              to="/model"
+              className={navClass}
+              onMouseEnter={() => sound.play('hover')}
+              onClick={() => sound.play('swoosh')}
+            >
+              Model
+            </NavLink>
+          </nav>
 
-        {/* Mobile Menu Button (Hamburger) */}
-        <button
-          onClick={() => {
-            sound.play('click');
-            setMobileMenuOpen((prev) => !prev);
-          }}
-          className="md:hidden p-2 rounded-xl border-2 border-black bg-white/50 text-black cursor-pointer shadow-[2px_2px_0_#000] active:scale-95 transition-transform"
-          aria-label="Buka Menu"
-        >
-          {mobileMenuOpen ? <X size={20} strokeWidth={2.5} /> : <Menu size={20} strokeWidth={2.5} />}
-        </button>
+          {/* Mobile Menu Button (Hamburger) */}
+          <button
+            onClick={() => {
+              sound.play('click');
+              setMobileMenuOpen((prev) => !prev);
+            }}
+            className="md:hidden p-2 rounded-xl border-2 border-black bg-white/50 text-black cursor-pointer shadow-[2px_2px_0_#000] active:scale-95 transition-transform"
+            aria-label="Buka Menu"
+          >
+            {mobileMenuOpen ? <X size={20} strokeWidth={2.5} /> : <Menu size={20} strokeWidth={2.5} />}
+          </button>
+        </div>
 
         {/* Brand Center Logo with Sparkling Accent */}
         <Link
@@ -91,8 +88,8 @@ export const Navbar: React.FC = () => {
           </span>
         </Link>
 
-        {/* Right Nav: Riwayat & Sound Toggle */}
-        <div className="flex items-center gap-3 sm:gap-6">
+        {/* Right Nav: Riwayat (balances centered logo) */}
+        <div className="flex-1 flex items-center justify-end">
           <NavLink
             to="/riwayat"
             className={(props) => `${navClass(props)} hidden md:inline`}
@@ -101,16 +98,6 @@ export const Navbar: React.FC = () => {
           >
             Riwayat
           </NavLink>
-
-          <button
-            onClick={handleSoundToggle}
-            onMouseEnter={() => sound.play('hover')}
-            className="flex items-center gap-2 px-3 sm:px-3.5 py-1.5 rounded-full border-2 border-black bg-white/50 hover:bg-white text-black font-passata text-xs sm:text-sm uppercase transition-all shadow-[2px_2px_0_#000000] cursor-pointer active:scale-95 font-bold"
-            aria-label="Toggle Sound"
-          >
-            <span className="hidden sm:inline">{soundActive ? 'Sound on' : 'Sound off'}</span>
-            {soundActive ? <Volume2 size={16} strokeWidth={2.5} /> : <VolumeX size={16} strokeWidth={2.5} />}
-          </button>
         </div>
 
       </div>
