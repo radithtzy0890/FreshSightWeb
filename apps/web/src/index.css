@@ -95,7 +95,7 @@ p {
 }
 
 .font-display {
-  font-family: 'Syne', 'Space Grotesk', system-ui, sans-serif;
+  font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
   font-size-adjust: from-font;
 }
 
@@ -490,12 +490,25 @@ p {
   100% { transform: translateX(-50%); }
 }
 
+@keyframes fs-single-glide {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(calc(100cqi - 100%)); }
+}
+
 .marquee-container {
   overflow: hidden;
   position: relative;
   width: 100%;
+  container-type: inline-size;
   mask-image: linear-gradient(to right, transparent, black 3%, black 97%, transparent);
   -webkit-mask-image: linear-gradient(to right, transparent, black 3%, black 97%, transparent);
+}
+
+.marquee-container--glide {
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+  container-type: inline-size;
 }
 
 .marquee-track {
@@ -508,10 +521,24 @@ p {
   }
 }
 
+.marquee-track--glide {
+  display: flex;
+  gap: 1.25rem;
+  width: max-content;
+  will-change: transform;
+  @media (prefers-reduced-motion: no-preference) {
+    animation: fs-single-glide 9s ease-in-out infinite alternate;
+  }
+}
+
 .marquee-track.is-paused,
 .marquee-track:hover,
 .marquee-track:active,
-.marquee-track:focus-within {
+.marquee-track:focus-within,
+.marquee-track--glide.is-paused,
+.marquee-track--glide:hover,
+.marquee-track--glide:active,
+.marquee-track--glide:focus-within {
   animation-play-state: paused;
 }
 

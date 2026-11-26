@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Home, ScanSearch, BarChart3, History } from 'lucide-react';
 import { sound } from '../services/soundEngine';
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
@@ -114,7 +114,7 @@ export const Navbar: React.FC = () => {
               setMobileMenuOpen(false);
             }}
           >
-            <span>Beranda 🍏</span>
+            <span className="inline-flex items-center gap-2"><Home size={18} strokeWidth={2.5} /> Beranda</span>
             <span>✦</span>
           </NavLink>
           <NavLink
@@ -125,7 +125,7 @@ export const Navbar: React.FC = () => {
               setMobileMenuOpen(false);
             }}
           >
-            <span>Cara Kerja 🔬</span>
+            <span className="inline-flex items-center gap-2"><ScanSearch size={18} strokeWidth={2.5} /> Cara Kerja</span>
             <span>✦</span>
           </NavLink>
           <NavLink
@@ -136,7 +136,7 @@ export const Navbar: React.FC = () => {
               setMobileMenuOpen(false);
             }}
           >
-            <span>Model & Riset 📊</span>
+            <span className="inline-flex items-center gap-2"><BarChart3 size={18} strokeWidth={2.5} /> Model & Data</span>
             <span>✦</span>
           </NavLink>
           <NavLink
@@ -147,7 +147,7 @@ export const Navbar: React.FC = () => {
               setMobileMenuOpen(false);
             }}
           >
-            <span>Riwayat Arsip 📜</span>
+            <span className="inline-flex items-center gap-2"><History size={18} strokeWidth={2.5} /> Riwayat</span>
             <span>✦</span>
           </NavLink>
         </div>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowUp } from 'lucide-react';
+import { ArrowUp, Leaf } from 'lucide-react';
 import { sound } from '../services/soundEngine';
 
 export const Footer: React.FC = () => {
@@ -15,25 +15,26 @@ export const Footer: React.FC = () => {
       <Link
         to="/"
         onClick={() => sound.play('swoosh')}
-        className="w-16 h-16 rounded-full bg-white text-black flex items-center justify-center border-3 border-black shadow-[4px_4px_0_#000000] text-3xl font-bold hover:scale-105 transition-transform cursor-pointer animate-fruit-bob"
+        className="w-16 h-16 rounded-full bg-[#FFC737] text-black flex items-center justify-center border-3 border-black shadow-[4px_4px_0_#000000] hover:scale-105 transition-transform cursor-pointer animate-fruit-bob"
         aria-label="Kembali ke beranda"
       >
-        🌿
+        <svg viewBox="0 0 36 36" className="w-8 h-8" aria-hidden="true">
+          <circle cx="18" cy="20" r="10" fill="#1E6B3E" stroke="#000" strokeWidth="2.5" />
+          <path d="M18 9 C21 4, 28 5, 27 10 C23 12, 19 11, 18 9Z" fill="#8DF947" stroke="#000" strokeWidth="2" strokeLinejoin="round" />
+        </svg>
       </Link>
 
-      <div className="space-y-3 max-w-3xl mx-auto px-6">
-        <p className="font-display text-xl sm:text-2xl md:text-[1.65rem] font-extrabold uppercase tracking-tight text-white leading-snug">
-          KAMI MENOLAK <span className="whitespace-nowrap">TEBAK-TEBAKAN.</span>
-          <br />
-          ANALISIS MUTU BUAH BERKATA JUJUR.
+      <div className="space-y-3 max-w-2xl mx-auto px-6">
+        <p className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-white leading-snug">
+          Cek kesegaran buah secara objektif, bukan kira-kira.
         </p>
-        <p className="text-sm sm:text-base font-medium text-white/80 tracking-normal leading-relaxed max-w-xl mx-auto">
-          Teknologi bio-optik deteksi kesegaran buah apel, pisang, dan jeruk berbasis AI yang terukur dan dapat dijelaskan.
+        <p className="text-sm sm:text-base font-normal text-white/80 leading-relaxed max-w-xl mx-auto">
+          Pemeriksaan visual apel, pisang, dan jeruk lengkap dengan peta area fokus serta kondisi permukaan buah.
         </p>
         <div className="pt-1 flex justify-center">
           <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#8DF947] text-black border-2 border-black shadow-[3px_3px_0_#000000] font-passata text-sm uppercase tracking-wider">
-            <span>OLEH FRESHSIGHT</span>
-            <span aria-hidden="true">🍏</span>
+            <Leaf size={14} strokeWidth={2.5} />
+            <span>FRESHSIGHT</span>
           </span>
         </div>
       </div>
@@ -47,7 +48,7 @@ export const Footer: React.FC = () => {
 
       <div className="flex items-center gap-4 pt-2">
         <p className="font-mono-tech text-xs text-white/60">
-          © 2026 FreshSight Bio-Optik
+          © 2026 FreshSight
         </p>
 
         <button

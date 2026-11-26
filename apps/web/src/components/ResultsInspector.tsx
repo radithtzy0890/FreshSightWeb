@@ -50,7 +50,7 @@ export const ResultsInspector: React.FC<ResultsInspectorProps> = ({ result }) =>
           <div className="max-w-3xl mb-10">
             <span className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#8DF947] mb-2">
               <CheckCircle2 size={14} />
-              Alur Analisis · 解析フロー
+              Alur Pemeriksaan
             </span>
             <h1 className="font-passata text-5xl sm:text-7xl text-shadow-3d-white uppercase leading-none">
               CARA KERJA
@@ -215,7 +215,7 @@ export const ResultsInspector: React.FC<ResultsInspectorProps> = ({ result }) =>
           </h2>
 
           <p className="text-base sm:text-xl font-semibold text-white/90 tracking-wide mt-2">
-            Kualitas nutrisi buah tanpa kompromi 🍏
+            Pilihan tepat untuk konsumsi harian maupun sortir stok.
           </p>
         </div>
       </section>

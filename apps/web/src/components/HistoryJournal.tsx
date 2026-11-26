@@ -76,12 +76,12 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
     });
   }, [history, searchQuery, filterFruit, filterStatus]);
 
-  // Duplicate items for seamless continuous marquee loop if items exist
+  // Loop continuously when >= 5 items; for 1-4 items glide smoothly without fake duplicates
+  const useMarqueeLoop = history.length >= 5;
   const marqueeItems = useMemo(() => {
     if (history.length === 0) return [];
-    if (history.length >= 6) return [...history, ...history];
-    return [...history, ...history, ...history, ...history];
-  }, [history]);
+    return useMarqueeLoop ? [...history, ...history] : history;
+  }, [history, useMarqueeLoop]);
 
   const handleOpenDetail = (item: AnalysisResult) => {
     sound.play('click');
@@ -152,7 +152,7 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
           <div className="space-y-1">
             <div className="inline-flex items-center gap-2 text-xs font-mono-tech uppercase tracking-widest text-[#8DF947]">
               <Sparkles size={14} />
-              <span>Rekam Jejak Bio-Optik</span>
+              <span>Arsip Pemeriksaan</span>
             </div>
             <h3 className="font-passata text-3xl sm:text-4xl uppercase tracking-wide text-white">
               HISTORI FOTO TERKIRIM
@@ -184,7 +184,7 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
             <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono-tech text-white/75">
               <span className="flex items-center gap-1.5">
                 <span className={`w-2 h-2 rounded-full bg-[#8DF947] ${marqueePaused ? '' : 'animate-ping'}`} />
-                <span>REEL SPESIMEN BERJALAN (HOVER / JEDA UNTUK INSPEKSI)</span>
+                <span>GALERI RIWAYAT (ARAHKAN KURSOR / JEDA UNTUK INSPEKSI)</span>
               </span>
               <button
                 type="button"
@@ -199,8 +199,8 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
               </button>
             </div>
 
-            <div className="marquee-container py-2">
-              <div className={`marquee-track ${marqueePaused ? 'is-paused' : ''}`}>
+            <div className={`${useMarqueeLoop ? 'marquee-container' : 'marquee-container--glide'} py-2`}>
+              <div className={`${useMarqueeLoop ? 'marquee-track' : 'marquee-track--glide'} ${marqueePaused ? 'is-paused' : ''}`}>
                 {marqueeItems.map((item, idx) => {
                   const verdict: Verdict = resolveVerdict(item);
                   const photo = item.thumb || item.img || '/fruit/apple_fresh.jpg';
@@ -582,8 +582,8 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
                     </div>
                     <div className="text-black/60 font-mono-tech text-[10px]">
                       {detailItem.src === 'api'
-                        ? 'Inferensi AI lokal: MobileNetV3Small + Grad-CAM.'
-                        : 'Mode sampel: sensor bio-optik non-invasif.'}
+                        ? 'Model MobileNetV3Small + Grad-CAM.'
+                        : 'Mode sampel pratinjau.'}
                     </div>
                   </div>
                 </div>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { AlertTriangle } from 'lucide-react';
 import { AnalysisResult, Verdict } from '../types';
 import {
   MODEL_LABELS,
@@ -111,15 +112,16 @@ export const AnalysisResultCard: React.FC<AnalysisResultCardProps> = ({
         )}
 
         {multipleFruits && (
-          <div className="rounded-2xl border-2 border-black bg-[#FFF3D6] p-3 text-[11px] font-semibold text-black/80 leading-relaxed">
-            ⚠ Terdeteksi {result.fruitCount} kandidat buah. Model dioptimalkan untuk satu buah
-            per foto; hasil ditandai RAGU.
+          <div className="rounded-2xl border-2 border-black bg-[#FFF3D6] p-3 text-[11px] font-semibold text-black/80 leading-relaxed flex items-start gap-2">
+            <AlertTriangle size={15} className="shrink-0 mt-0.5 text-[#B45309]" />
+            <span>Terdeteksi {result.fruitCount} kandidat buah. Model dioptimalkan untuk satu buah per foto; hasil ditandai RAGU.</span>
           </div>
         )}
 
         {verdict === 'tidak_terdeteksi' && (
-          <div className="rounded-2xl border-2 border-black bg-[#FFE8B3] p-3 text-[11px] font-semibold text-black/85 leading-relaxed">
-            ⚠ Objek buah tidak terdeteksi secara valid. Gunakan foto apel, pisang, atau jeruk utuh dengan latar belakang polos.
+          <div className="rounded-2xl border-2 border-black bg-[#FFE8B3] p-3 text-[11px] font-semibold text-black/85 leading-relaxed flex items-start gap-2">
+            <AlertTriangle size={15} className="shrink-0 mt-0.5 text-[#B45309]" />
+            <span>Objek buah tidak terdeteksi secara valid. Gunakan foto apel, pisang, atau jeruk utuh dengan latar belakang polos.</span>
           </div>
         )}
 

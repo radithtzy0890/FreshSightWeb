@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Download, X } from 'lucide-react';
+import { Download, X, AlertTriangle } from 'lucide-react';
 import { AnalysisResult, Verdict } from '../types';
 import {
   FRUIT_NAMES,
@@ -184,9 +184,9 @@ export const ResultDetailModal: React.FC<ResultDetailModalProps> = ({ result, on
             </div>
 
             {multipleFruits && (
-              <div className="rounded-2xl border-2 border-black bg-[#FFF3D6] p-3 text-xs font-semibold text-black/80 leading-relaxed">
-                ⚠ Terdeteksi {result.fruitCount} kandidat buah. Model dioptimalkan untuk satu
-                buah per foto; hasil ditandai RAGU.
+              <div className="rounded-2xl border-2 border-black bg-[#FFF3D6] p-3 text-xs font-semibold text-black/80 leading-relaxed flex items-start gap-2">
+                <AlertTriangle size={15} className="shrink-0 mt-0.5 text-[#B45309]" />
+                <span>Terdeteksi {result.fruitCount} kandidat buah. Model dioptimalkan untuk satu buah per foto; hasil ditandai RAGU.</span>
               </div>
             )}
 

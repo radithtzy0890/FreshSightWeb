@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Camera, Upload, ArrowLeft, ArrowRight, ChevronDown, RefreshCw, X, AlertCircle, FlipHorizontal, Flame } from 'lucide-react';
+import { Camera, Upload, ArrowLeft, ArrowRight, ChevronDown, RefreshCw, X, AlertCircle, FlipHorizontal, Flame, Lightbulb } from 'lucide-react';
 import { AnalysisResult, DemoPreset } from '../types';
 import {
   runAnalysis,
@@ -524,7 +524,7 @@ export const Hero: React.FC<HeroProps> = ({
             {/* Tips Foto yang Pas Card */}
             <div className="mt-5 w-full max-w-[260px] lg:max-w-[225px] bg-[#F7F2E5] text-black border-2 border-black shadow-[3px_3px_0_#000000] rounded-2xl p-3 text-left">
               <div className="flex items-center gap-1.5 mb-1.5 font-passata text-xs uppercase tracking-wider text-black">
-                <span>💡</span>
+                <Lightbulb size={14} strokeWidth={2.5} className="text-[#1E6B3E] shrink-0" />
                 <span>Tips foto yang pas</span>
               </div>
               <ul className="space-y-1 text-[11px] text-black/85 font-medium leading-snug">
@@ -562,7 +562,7 @@ export const Hero: React.FC<HeroProps> = ({
             {/* Floating Orbit Accents */}
             <div className="absolute -top-1 left-2 sm:-left-4 px-3 py-1 rounded-full bg-white border-2 border-black font-passata text-[10px] uppercase font-bold shadow-[2px_2px_0_#000] pointer-events-none animate-orbit-float z-20 hidden sm:flex items-center gap-1 select-none">
               <span>✦</span>
-              <span>BIO-OPTIK</span>
+              <span>SCAN BUAH</span>
             </div>
             <div className="absolute -bottom-2 right-2 sm:-right-4 px-3 py-1 rounded-full bg-[#8DF947] border-2 border-black font-passata text-[10px] uppercase font-bold text-black shadow-[2px_2px_0_#000] pointer-events-none animate-orbit-float z-20 hidden sm:flex items-center gap-1 select-none">
               <span>100% ALAMI</span>
@@ -623,7 +623,7 @@ export const Hero: React.FC<HeroProps> = ({
                     <div className="absolute top-0 left-3 right-3 h-0.5 bg-[#8DF947] shadow-[0_0_10px_#8DF947,0_0_18px_#8DF947] animate-laser-sweep pointer-events-none" />
 
                     <span className="font-mono-tech text-[10px] text-[#8DF947] tracking-widest uppercase bg-black/75 px-2.5 py-1 rounded-full border border-[#8DF947]/50 shadow-sm backdrop-blur-sm select-none">
-                      SENSOR AI AKTIF
+                      KAMERA AKTIF
                     </span>
 
                     {/* Bottom Markers */}
@@ -792,7 +792,7 @@ export const Hero: React.FC<HeroProps> = ({
                 <div className="absolute inset-0 bg-black/85 backdrop-blur-sm flex flex-col items-center justify-center gap-2 z-30">
                   <RefreshCw size={36} className="text-[#8DF947] animate-spin" />
                   <p className="font-passata text-base text-[#8DF947] uppercase tracking-wider">
-                    MEMINDAI FOTO BUAH...
+                    MEMERIKSA BUAH...
                   </p>
                 </div>
               )}
