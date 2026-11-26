@@ -41,7 +41,16 @@ terukur. Foto diproses oleh model MobileNetV3Small yang berjalan di server infer
 
 ```text
 backend/
-  app.py                         # FastAPI: /v1/health, /v1/predict, Dual-Gate OOD, supresi stiker PLU, Grad-CAM, fitur defek
+  app.py                         # Entrypoint FastAPI tipis: /v1/health, /v1/predict, CORS, rate limit
+  freshsight/                    # Paket modular backend inferensi
+    __init__.py                  # Guard urutan impor onnxruntime sebelum TensorFlow/Keras (Windows)
+    config.py                    # Path aset, konstanta kelas, kalibrasi, threshold OOD/TTA, CORS
+    rate_limit.py                # Sliding-window rate limiter per IP
+    models.py                    # Patch kompatibilitas Keras, loader model, Grad-CAM, TTA adaptif
+    ood.py                       # Dual-Gate OOD (embedding 576-d + MobileCLIP2-S0 zero-shot ONNX)
+    vision.py                    # OpenCV: kandidat buah, auto-crop, supresi stiker PLU, analisis defek
+    explain.py                   # Kalibrasi defek, overlay Grad-CAM/defek, penjelasan bahasa Indonesia
+    pipeline.py                  # Orkestrasi end-to-end run_inference
   requirements.txt
   models/
     mobilenetv3small_external_green_v2.keras             # model aktif (4,13 MB)
@@ -189,7 +198,7 @@ Field respons utama:
 
 CORS mengizinkan semua port pada `http(s)://localhost`, `http(s)://127.0.0.1`, dan
 `http(s)://freshsightweb.test` (via `allow_origin_regex`). Tambahkan origin lain melalui
-`allow_origins` di `backend/app.py` jika di-deploy ke domain lain.
+`CORS_ALLOW_ORIGINS` di `backend/freshsight/config.py` jika di-deploy ke domain lain.
 
 ## Model
 
