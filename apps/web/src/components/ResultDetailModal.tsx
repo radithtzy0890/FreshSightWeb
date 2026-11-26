@@ -126,8 +126,14 @@ export const ResultDetailModal: React.FC<ResultDetailModalProps> = ({ result, on
             <div className="relative w-full aspect-square rounded-2xl overflow-hidden border-3 border-black shadow-[5px_5px_0_#000000] bg-white flex items-center justify-center">
               <img
                 src={image}
+                alt=""
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 w-full h-full object-cover scale-125 blur-2xl opacity-40"
+              />
+              <img
+                src={image}
                 alt={`Spesimen ${fruitName}`}
-                className="w-full h-full object-cover object-center"
+                className="relative z-10 w-full h-full object-contain p-2"
               />
               <span
                 className={`absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-passata uppercase font-bold border-2 border-black shadow-xs ${verdictClass(verdict)}`}

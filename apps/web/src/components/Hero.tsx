@@ -673,7 +673,7 @@ export const Hero: React.FC<HeroProps> = ({
                 </div>
               ) : uploadedPhoto ? (
                 <div
-                  className="relative w-full h-full rounded-[136px] overflow-hidden border-3 border-black bg-white"
+                  className="relative w-full h-full rounded-[136px] overflow-hidden border-3 border-black bg-white flex items-center justify-center"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (result?.cam && activeVerdict !== 'tidak_terdeteksi') {
@@ -682,12 +682,24 @@ export const Hero: React.FC<HeroProps> = ({
                     }
                   }}
                 >
+                  {/* Ambient soft backdrop matching the photo's own edges */}
+                  <img
+                    src={showHeatmap && result?.cam ? result.cam : uploadedPhoto}
+                    alt=""
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 w-full h-full object-cover scale-125 blur-2xl opacity-45 select-none"
+                  />
+                  {/* Full uncropped specimen centered with breathing room from top/bottom pills */}
                   <img
                     src={showHeatmap && result?.cam ? result.cam : uploadedPhoto}
                     alt="Spesimen terunggah"
-                    className="w-full h-full object-cover object-center transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+                    className={`relative z-10 w-full h-full transition-transform duration-500 ease-out group-hover:scale-[1.03] ${
+                      showHeatmap && result?.cam
+                        ? 'object-cover object-center'
+                        : 'object-contain px-2.5 py-11'
+                    }`}
                   />
-                  <div className="pointer-events-none absolute inset-0 rounded-[136px] shadow-[inset_0_0_24px_rgba(0,0,0,0.14)]" />
+                  <div className="pointer-events-none absolute inset-0 z-10 rounded-[136px] shadow-[inset_0_0_24px_rgba(0,0,0,0.12)]" />
 
                   {activeVerdict && (
                     <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
@@ -709,7 +721,7 @@ export const Hero: React.FC<HeroProps> = ({
                           : activeVerdict === 'busuk'
                           ? `BUSUK • ${formatPercent(result?.conf ?? 0)}`
                           : activeVerdict === 'tidak_terdeteksi'
-                          ? 'NON-BUAH'
+                          ? 'BUKAN TARGET'
                           : `RAGU • ${formatPercent(result?.conf ?? 0)}`}
                       </span>
                     </div>
