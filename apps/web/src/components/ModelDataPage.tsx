@@ -48,7 +48,7 @@ export const ModelDataPage: React.FC = () => {
             <BarChart3 size={14} />
             Riset & Evaluasi
           </span>
-          <h1 className="font-passata text-5xl sm:text-7xl uppercase font-bold tracking-tight leading-none">
+          <h1 className="font-passata text-5xl sm:text-7xl text-shadow-3d-white uppercase font-bold tracking-tight leading-none">
             MODEL & DATA
           </h1>
           <p className="mt-4 text-sm sm:text-base text-white/80 leading-relaxed max-w-2xl">
@@ -62,7 +62,7 @@ export const ModelDataPage: React.FC = () => {
           {METRICS.map((metric) => (
             <div
               key={metric.label}
-              className="bg-[#F7F2E5] text-black rounded-2xl border-3 border-black shadow-[5px_5px_0_#000000] p-5"
+              className="bg-[#F7F2E5] text-black rounded-2xl border-3 border-black shadow-[5px_5px_0_#000000] p-5 interactive-card"
             >
               <div className="font-mono-tech text-[10px] uppercase tracking-widest text-black/60">
                 {metric.label}

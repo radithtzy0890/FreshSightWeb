@@ -1,10 +1,12 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Camera, Upload, ArrowLeft, ArrowRight, ChevronDown, RefreshCw, X, AlertCircle, FlipHorizontal } from 'lucide-react';
+import { Camera, Upload, ArrowLeft, ArrowRight, ChevronDown, RefreshCw, X, AlertCircle, FlipHorizontal, Flame } from 'lucide-react';
 import { AnalysisResult, DemoPreset } from '../types';
 import {
   runAnalysis,
   fetchPredictionFromApi,
   loadImageElement,
+  formatPercent,
+  resolveVerdict,
 } from '../services/cvEngine';
 import { sound } from '../services/soundEngine';
 import { AnalysisResultCard } from './AnalysisResultCard';
@@ -72,6 +74,7 @@ async function analyzeFile(file: File) {
 
 interface HeroProps {
   onAnalysisComplete: (result: AnalysisResult) => void;
+  onResetResult?: () => void;
   showToast: (msg: string, type?: 'default' | 'success' | 'error') => void;
   presets: DemoPreset[];
   result: AnalysisResult | null;
@@ -154,6 +157,7 @@ const SPECIMENS = [
 
 export const Hero: React.FC<HeroProps> = ({
   onAnalysisComplete,
+  onResetResult,
   showToast,
   presets,
   result,
@@ -166,6 +170,16 @@ export const Hero: React.FC<HeroProps> = ({
   const [uploadedPhoto, setUploadedPhoto] = useState<string | null>(result?.img || null);
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [mouseOffset, setMouseOffset] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    if (result?.img) {
+      setUploadedPhoto(result.img);
+      setShowHeatmap(false);
+    } else if (!result) {
+      setUploadedPhoto(null);
+      setShowHeatmap(false);
+    }
+  }, [result]);
 
   const capsuleRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -186,6 +200,36 @@ export const Hero: React.FC<HeroProps> = ({
   };
 
   const specimen = SPECIMENS[currentIdx];
+
+  const activeVerdict = result && uploadedPhoto ? resolveVerdict(result) : null;
+  const capsuleColor =
+    activeVerdict === 'segar'
+      ? '#1E6B3E'
+      : activeVerdict === 'busuk'
+      ? '#C92A2A'
+      : activeVerdict === 'ragu'
+      ? '#B45309'
+      : activeVerdict === 'tidak_terdeteksi'
+      ? '#262626'
+      : specimen.color;
+
+  const auraColor =
+    activeVerdict === 'segar'
+      ? 'rgba(30, 107, 62, 0.45)'
+      : activeVerdict === 'busuk'
+      ? 'rgba(201, 42, 42, 0.42)'
+      : activeVerdict === 'ragu'
+      ? 'rgba(180, 83, 9, 0.42)'
+      : activeVerdict === 'tidak_terdeteksi'
+      ? 'rgba(38, 38, 38, 0.35)'
+      : specimen.auraColor;
+
+  const handleClearUpload = () => {
+    sound.play('click');
+    setUploadedPhoto(null);
+    setShowHeatmap(false);
+    onResetResult?.();
+  };
 
   const handlePrev = () => {
     sound.play('hover');
@@ -435,7 +479,7 @@ export const Hero: React.FC<HeroProps> = ({
             </div>
 
             {/* Action Buttons: Live Camera, Native Phone Camera, and Upload */}
-            <div className="mt-6 flex flex-col gap-2.5 w-full max-w-[210px]">
+            <div className="mt-6 flex flex-col gap-2.5 w-full max-w-[260px] lg:max-w-[225px]">
               {/* Hidden file inputs */}
               <input
                 ref={fileInputRef}
@@ -477,8 +521,8 @@ export const Hero: React.FC<HeroProps> = ({
               </button>
             </div>
 
-            {/* Tips Foto yang Pas Card (Sesuai Gambar Referensi) */}
-            <div className="mt-5 w-full max-w-[210px] bg-[#F7F2E5] text-black border-2 border-black shadow-[3px_3px_0_#000000] rounded-2xl p-3 text-left">
+            {/* Tips Foto yang Pas Card */}
+            <div className="mt-5 w-full max-w-[260px] lg:max-w-[225px] bg-[#F7F2E5] text-black border-2 border-black shadow-[3px_3px_0_#000000] rounded-2xl p-3 text-left">
               <div className="flex items-center gap-1.5 mb-1.5 font-passata text-xs font-bold uppercase tracking-tight text-black">
                 <span>💡</span>
                 <span>Tips foto yang pas</span>
@@ -511,7 +555,7 @@ export const Hero: React.FC<HeroProps> = ({
             <div
               className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] sm:w-[460px] h-[340px] sm:h-[460px] rounded-full blur-3xl pointer-events-none transition-all duration-700 ease-out z-0 animate-aura-float"
               style={{
-                background: `radial-gradient(circle, ${specimen.auraColor} 0%, rgba(255,199,55,0) 70%)`,
+                background: `radial-gradient(circle, ${auraColor} 0%, rgba(255,199,55,0) 70%)`,
               }}
             />
 
@@ -529,21 +573,25 @@ export const Hero: React.FC<HeroProps> = ({
               ref={capsuleRef}
               onMouseMove={handleMouseMove}
               onMouseLeave={handleMouseLeave}
-              className="relative w-[280px] sm:w-[320px] h-[380px] sm:h-[420px] rounded-[160px] border-3 border-black shadow-[8px_8px_0_#000000] flex flex-col items-center justify-center p-6 text-center cursor-pointer overflow-hidden group z-10 transition-colors duration-700 ease-out"
+              className="relative w-[280px] sm:w-[320px] h-[380px] sm:h-[420px] rounded-[160px] border-3 border-black shadow-[8px_8px_0_#000000] flex flex-col items-center justify-center p-5 sm:p-6 text-center cursor-pointer overflow-hidden group z-10 transition-colors duration-700 ease-out"
               style={{
-                backgroundColor: specimen.color,
+                backgroundColor: capsuleColor,
                 transform: `perspective(900px) rotateY(${mouseOffset.x * 12}deg) rotateX(${-mouseOffset.y * 12}deg)`,
                 transition:
                   mouseOffset.x === 0
-                    ? 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.7s ease-out'
+                    ? 'transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.7s ease-out'
                     : 'background-color 0.7s ease-out',
               }}
-              onClick={handleTriggerAnalysis}
+              onClick={() => {
+                if (!cameraActive && !uploadedPhoto) {
+                  handleTriggerAnalysis();
+                }
+              }}
             >
               {/* Camera Stream Overlay */}
               {cameraActive ? (
                 <div
-                  className="relative w-full h-full rounded-[130px] overflow-hidden border-2 border-black bg-black flex flex-col items-center justify-center"
+                  className="relative w-full h-full rounded-[136px] overflow-hidden border-3 border-black bg-black flex flex-col items-center justify-center"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <video
@@ -564,77 +612,140 @@ export const Hero: React.FC<HeroProps> = ({
                   />
 
                   {/* Viewfinder Target Reticle with AI Laser Sweep */}
-                  <div className="absolute inset-5 sm:inset-7 border-2 border-dashed border-[#8DF947]/80 rounded-3xl pointer-events-none flex flex-col items-center justify-between p-3 overflow-hidden">
+                  <div className="absolute inset-6 sm:inset-7 border-2 border-dashed border-[#8DF947]/80 rounded-[96px] pointer-events-none flex flex-col items-center justify-between p-4 overflow-hidden">
                     {/* Top Markers */}
-                    <div className="w-full flex justify-between text-[#8DF947] text-[11px] font-mono font-bold select-none">
+                    <div className="w-full flex justify-between text-[#8DF947] text-[11px] font-mono font-bold select-none pt-4">
                       <span>[ ✦ ]</span>
                       <span>[ ✦ ]</span>
                     </div>
 
                     {/* Sweeping Laser Beam */}
-                    <div className="absolute left-2 right-2 h-0.5 bg-[#8DF947] shadow-[0_0_10px_#8DF947,0_0_18px_#8DF947] animate-laser-sweep pointer-events-none" />
+                    <div className="absolute top-0 left-3 right-3 h-0.5 bg-[#8DF947] shadow-[0_0_10px_#8DF947,0_0_18px_#8DF947] animate-laser-sweep pointer-events-none" />
 
-                    <span className="font-mono-tech text-[10px] text-[#8DF947] tracking-widest uppercase bg-black/70 px-2.5 py-1 rounded-full border border-[#8DF947]/50 shadow-sm backdrop-blur-xs select-none">
+                    <span className="font-mono-tech text-[10px] text-[#8DF947] tracking-widest uppercase bg-black/75 px-2.5 py-1 rounded-full border border-[#8DF947]/50 shadow-sm backdrop-blur-sm select-none">
                       SENSOR AI AKTIF
                     </span>
 
                     {/* Bottom Markers */}
-                    <div className="w-full flex justify-between text-[#8DF947] text-[11px] font-mono font-bold select-none">
+                    <div className="w-full flex justify-between text-[#8DF947] text-[11px] font-mono font-bold select-none pb-8">
                       <span>[ ✦ ]</span>
                       <span>[ ✦ ]</span>
                     </div>
                   </div>
 
-                  {/* Switch Front/Rear Camera Button */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleToggleFacing();
-                    }}
-                    className="absolute top-4 left-4 p-2 rounded-full bg-black/80 hover:bg-black text-[#8DF947] border border-[#8DF947] cursor-pointer z-20 flex items-center gap-1 shadow-md"
-                    title="Ganti Kamera Depan/Belakang"
-                  >
-                    <FlipHorizontal size={14} />
-                  </button>
-
-                  {/* Close Camera Button */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      stopCamera();
-                    }}
-                    className="absolute top-4 right-4 p-2 rounded-full bg-black/80 hover:bg-black text-white border border-white cursor-pointer z-20"
-                    title="Tutup Kamera"
-                  >
-                    <X size={14} />
-                  </button>
+                  {/* Camera Top Controls (Centered inside safe oval apex) */}
+                  <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleFacing();
+                      }}
+                      className="p-2 rounded-full bg-black/80 hover:bg-black text-[#8DF947] border border-[#8DF947] cursor-pointer flex items-center gap-1 shadow-md"
+                      title="Ganti Kamera Depan/Belakang"
+                      aria-label="Ganti kamera depan atau belakang"
+                    >
+                      <FlipHorizontal size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        stopCamera();
+                      }}
+                      className="p-2 rounded-full bg-black/80 hover:bg-[#EB3322] text-white border border-white cursor-pointer shadow-md transition-colors"
+                      title="Tutup Kamera"
+                      aria-label="Tutup kamera"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
 
                   {/* Capture Button */}
                   <button
+                    type="button"
                     onClick={captureCamera}
-                    className="absolute bottom-4 px-5 py-2.5 rounded-xl bg-[#8DF947] text-black font-passata text-sm border-2 border-black shadow-[2px_2px_0_#000000] uppercase font-bold hover:scale-105 active:scale-95 transition-transform cursor-pointer flex items-center gap-1.5 z-20"
+                    className="absolute bottom-4 left-1/2 -translate-x-1/2 px-5 py-2.5 rounded-full bg-[#8DF947] text-black font-passata text-sm border-2 border-black shadow-[2px_2px_0_#000000] uppercase font-bold hover:scale-105 active:scale-95 transition-transform cursor-pointer flex items-center gap-1.5 z-20 whitespace-nowrap"
                   >
                     <Camera size={15} strokeWidth={2.5} />
                     <span>Ambil Foto</span>
                   </button>
                 </div>
               ) : uploadedPhoto ? (
-                <div className="relative w-full h-full rounded-[130px] overflow-hidden border-2 border-black bg-[#ECE7DC] flex items-center justify-center p-3">
+                <div
+                  className="relative w-full h-full rounded-[136px] overflow-hidden border-3 border-black bg-white"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (result?.cam && activeVerdict !== 'tidak_terdeteksi') {
+                      sound.play('click');
+                      setShowHeatmap((prev) => !prev);
+                    }
+                  }}
+                >
                   <img
                     src={showHeatmap && result?.cam ? result.cam : uploadedPhoto}
                     alt="Spesimen terunggah"
-                    className="w-full h-full object-contain drop-shadow-md rounded-2xl"
+                    className="w-full h-full object-cover object-center transition-transform duration-500 ease-out group-hover:scale-[1.03]"
                   />
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setUploadedPhoto(null);
-                      setShowHeatmap(false);
-                    }}
-                    className="absolute top-4 right-4 p-1.5 rounded-full bg-black/80 text-white border border-white hover:bg-black cursor-pointer shadow-md"
-                  >
-                    <X size={14} />
-                  </button>
+                  <div className="pointer-events-none absolute inset-0 rounded-[136px] shadow-[inset_0_0_24px_rgba(0,0,0,0.14)]" />
+
+                  {activeVerdict && (
+                    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+                      <span
+                        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full border-2 border-black font-passata text-[11px] uppercase font-bold shadow-[2px_2px_0_#000000] whitespace-nowrap ${
+                          activeVerdict === 'segar'
+                            ? 'bg-[#8DF947] text-black'
+                            : activeVerdict === 'busuk'
+                            ? 'bg-[#EB3322] text-white'
+                            : activeVerdict === 'tidak_terdeteksi'
+                            ? 'bg-neutral-800 text-white'
+                            : 'bg-[#FFC737] text-black'
+                        }`}
+                      >
+                        {showHeatmap && result?.cam
+                          ? 'GRAD-CAM'
+                          : activeVerdict === 'segar'
+                          ? `SEGAR • ${formatPercent(result?.conf ?? 0)}`
+                          : activeVerdict === 'busuk'
+                          ? `BUSUK • ${formatPercent(result?.conf ?? 0)}`
+                          : activeVerdict === 'tidak_terdeteksi'
+                          ? 'NON-BUAH'
+                          : `RAGU • ${formatPercent(result?.conf ?? 0)}`}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5">
+                    {result?.cam && activeVerdict !== 'tidak_terdeteksi' && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          sound.play('click');
+                          setShowHeatmap((prev) => !prev);
+                        }}
+                        className={`px-3 py-1.5 rounded-full border-2 border-black font-passata text-[11px] uppercase font-bold shadow-[2px_2px_0_#000000] cursor-pointer transition-transform hover:scale-105 active:scale-95 flex items-center gap-1 whitespace-nowrap ${
+                          showHeatmap ? 'bg-[#FFC737] text-black' : 'bg-white text-black hover:bg-[#FFF8E7]'
+                        }`}
+                        title="Lihat atau sembunyikan peta atensi Grad-CAM"
+                      >
+                        <Flame size={12} strokeWidth={2.5} />
+                        <span>{showHeatmap ? 'Asli' : 'Grad-CAM'}</span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleClearUpload();
+                      }}
+                      className="p-1.5 rounded-full bg-black/85 text-white border-2 border-white/80 hover:bg-[#EB3322] hover:border-black cursor-pointer shadow-[2px_2px_0_#000000] transition-colors"
+                      aria-label="Hapus foto dan kembali ke spesimen"
+                      title="Ganti foto"
+                    >
+                      <X size={14} strokeWidth={2.5} />
+                    </button>
+                  </div>
                 </div>
               ) : (
                 /* The Floating Specimen Plate (Photorealistic Fruit Display with Planet Oño 3D Bob & Breathe) */
@@ -648,11 +759,11 @@ export const Hero: React.FC<HeroProps> = ({
                 >
                   {/* Floating White Pedestal Disc with 3D Shadow */}
                   <div className="relative">
-                    <div className="w-36 h-36 sm:w-42 sm:h-42 rounded-full overflow-hidden border-3 border-black shadow-[4px_4px_0_#000000] bg-white p-2.5 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+                    <div className="w-36 h-36 sm:w-44 sm:h-44 rounded-full overflow-hidden border-3 border-black shadow-[4px_4px_0_#000000] bg-white p-2 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
                       <img
                         src={specimen.image}
                         alt={specimen.name}
-                        className="w-full h-full object-contain drop-shadow-md select-none transform transition-transform group-hover:scale-110"
+                        className="w-full h-full object-contain select-none transform transition-transform duration-300 group-hover:scale-110"
                       />
                     </div>
                     {/* Dynamic Drop Shadow below the fruit plate that squashes & stretches */}
@@ -669,10 +780,12 @@ export const Hero: React.FC<HeroProps> = ({
                 </div>
               )}
 
-              {/* Down Arrow Indicator at Capsule Bottom */}
-              <div className="absolute bottom-3 text-white text-xl animate-bounce pointer-events-none">
-                <ChevronDown size={22} strokeWidth={3} />
-              </div>
+              {/* Down Arrow Indicator at Capsule Bottom (only on demo specimen pedestal) */}
+              {!cameraActive && !uploadedPhoto && (
+                <div className="absolute bottom-3 text-white text-xl animate-bounce pointer-events-none">
+                  <ChevronDown size={22} strokeWidth={3} />
+                </div>
+              )}
 
               {/* Analysis Loading Screen */}
               {analyzing && (
@@ -702,11 +815,12 @@ export const Hero: React.FC<HeroProps> = ({
                 result={result}
                 showHeatmap={showHeatmap}
                 onToggleHeatmap={() => setShowHeatmap((prev) => !prev)}
+                onReset={handleClearUpload}
               />
             ) : (
               <>
                 {/* Massive Display Headline: Refers specifically to fruit freshness & quality */}
-            <h1 className="font-passata text-4xl sm:text-5xl md:text-6xl lg:text-[3.75rem] xl:text-[4.25rem] text-black text-shadow-3d-black uppercase tracking-tight font-bold leading-[0.95] break-words">
+            <h1 className="font-passata hero-display-title text-black text-shadow-3d-black uppercase font-bold break-words">
               KESEGARAN<br />
               BUAH ALAMI.<br />
               TERUJI HINGGA<br />

@@ -31,9 +31,9 @@ interface ToastItem {
 }
 
 const TOAST_ICONS = {
-  success: <CheckCircle2 size={16} className="text-[#00FF87]" />,
-  error:   <AlertCircle size={16} className="text-[#FF4D6D]" />,
-  default: <Info size={16} className="text-[#00FF87]" />,
+  success: <CheckCircle2 size={16} className="text-[#1E6B3E]" />,
+  error:   <AlertCircle size={16} className="text-[#EB3322]" />,
+  default: <Info size={16} className="text-black" />,
 };
 
 function persistHistory(items: AnalysisResult[]): void {
@@ -206,6 +206,7 @@ export const App: React.FC = () => {
             element={
               <Hero
                 onAnalysisComplete={handleAnalysisComplete}
+                onResetResult={() => setCurrentResult(null)}
                 showToast={showToast}
                 presets={DEMO_PRESETS}
                 result={currentResult}
@@ -244,13 +245,23 @@ export const App: React.FC = () => {
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className="pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-2xl bg-[#09170E] text-[#F3FDF6] border border-[#00FF87]/30 shadow-[0_0_25px_rgba(0,255,135,0.25)] text-xs font-mono-tech"
+            className="pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-2xl bg-[#F7F2E5] text-black border-3 border-black shadow-[4px_4px_0_#000000] text-xs font-semibold animate-specimen-pop max-w-sm"
           >
-            <span className="shrink-0">{TOAST_ICONS[toast.type]}</span>
-            <span className="flex-1">{toast.message}</span>
+            <span
+              className={`shrink-0 w-7 h-7 rounded-full border-2 border-black flex items-center justify-center ${
+                toast.type === 'success'
+                  ? 'bg-[#8DF947]'
+                  : toast.type === 'error'
+                  ? 'bg-[#FDE8E1]'
+                  : 'bg-[#FFC737]'
+              }`}
+            >
+              {TOAST_ICONS[toast.type]}
+            </span>
+            <span className="flex-1 leading-snug">{toast.message}</span>
             <button
               onClick={() => setToasts((p) => p.filter((t) => t.id !== toast.id))}
-              className="text-[#5D796A] hover:text-[#00FF87] transition-colors"
+              className="p-1 rounded-full text-black/60 hover:text-black hover:bg-black/10 transition-colors cursor-pointer"
               aria-label="Tutup notifikasi"
             >
               <X size={14} />

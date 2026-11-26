@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Maximize2, Trash2, X, Search, FileText, Copy, RotateCcw, Check, Sparkles } from 'lucide-react';
+import { Maximize2, Trash2, X, Search, FileText, Copy, RotateCcw, Check, Sparkles, Pause, Play } from 'lucide-react';
 import { AnalysisResult, Verdict } from '../types';
 import {
   FRUIT_NAMES,
@@ -55,6 +55,7 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
   const [feedbackSent, setFeedbackSent] = useState<string | null>(null);
   const [showCorrection, setShowCorrection] = useState(false);
   const [correctionLabel, setCorrectionLabel] = useState('fresh_apple');
+  const [marqueePaused, setMarqueePaused] = useState(false);
 
   // Filtered History list
   const filteredHistory = useMemo(() => {
@@ -177,18 +178,29 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
           </div>
         </div>
 
-        {/* 1. ANIMATED RUNNING REEL / MARQUEE TICKER (Sesuai Permintaan Foto Berjalan) */}
+        {/* 1. ANIMATED RUNNING REEL / MARQUEE TICKER */}
         {marqueeItems.length > 0 && (
           <div className="space-y-3">
-            <div className="flex items-center justify-between text-xs font-mono-tech text-white/70">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono-tech text-white/75">
               <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#8DF947] animate-ping" />
-                <span>REEL SPESIMEN BERJALAN (HOVER UNTUK JEDA / KLIK DETAIL)</span>
+                <span className={`w-2 h-2 rounded-full bg-[#8DF947] ${marqueePaused ? '' : 'animate-ping'}`} />
+                <span>REEL SPESIMEN BERJALAN (HOVER / JEDA UNTUK INSPEKSI)</span>
               </span>
+              <button
+                type="button"
+                onClick={() => {
+                  sound.play('click');
+                  setMarqueePaused((prev) => !prev);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 hover:bg-white/25 text-white border border-white/30 text-[11px] font-passata uppercase cursor-pointer transition-colors"
+              >
+                {marqueePaused ? <Play size={12} /> : <Pause size={12} />}
+                <span>{marqueePaused ? 'Putar' : 'Jeda'}</span>
+              </button>
             </div>
 
             <div className="marquee-container py-2">
-              <div className="marquee-track">
+              <div className={`marquee-track ${marqueePaused ? 'is-paused' : ''}`}>
                 {marqueeItems.map((item, idx) => {
                   const verdict: Verdict = resolveVerdict(item);
                   const photo = item.thumb || item.img || '/fruit/apple_fresh.jpg';
@@ -201,11 +213,11 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
                       onClick={() => handleOpenDetail(item)}
                     >
                       {/* Photo Thumbnail */}
-                      <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-[#ECE7DC] border-2 border-black mb-2 flex items-center justify-center">
+                      <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-white border-2 border-black mb-2 flex items-center justify-center">
                         <img
                           src={photo}
                           alt={fruitName}
-                          className="w-full h-full object-contain p-1 group-hover:scale-105 transition-transform duration-300"
+                          className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
                         />
 
                         {/* Stamped Badge */}
@@ -360,7 +372,7 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
                         <img
                           src={photo}
                           alt={fruitName}
-                          className="w-full h-full object-contain p-1"
+                          className="w-full h-full object-cover object-center"
                         />
                       </div>
 
@@ -434,11 +446,12 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
                 setDetailItem(null);
               }}
               className="absolute top-4 right-4 p-2 rounded-full bg-white hover:bg-[#EB3322] hover:text-white border-2 border-black shadow-[2px_2px_0_#000000] cursor-pointer transition-colors"
+              aria-label="Tutup detail"
             >
               <X size={18} strokeWidth={2.5} />
             </button>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start pt-8 sm:pt-0">
 
               {/* Left Column: Big Photo & Layer Mode Switcher */}
               <div className="lg:col-span-5 flex flex-col items-center">
@@ -452,7 +465,7 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
                         : detailItem.img || detailItem.thumb || '/fruit/apple_fresh.jpg'
                     }
                     alt="Spesimen Analisis"
-                    className="w-full h-full object-contain p-2"
+                    className="w-full h-full object-cover object-center"
                   />
 
                   {/* Stamped Corner Badge */}
@@ -565,10 +578,12 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
                   <div className="space-y-0.5 text-xs">
                     <div className="font-bold text-black uppercase tracking-wide">Tingkat keyakinan</div>
                     <div className="text-black/80">
-                      Model <span className="font-bold">{detailItem.model || 'analisis-warna (demo)'}</span> · {detailItem.ms || 195} ms
+                      Model <span className="font-bold">{detailItem.model || 'mobilenetv3small_external_green_v2'}</span> · {detailItem.ms || 195} ms
                     </div>
                     <div className="text-black/60 font-mono-tech text-[10px]">
-                      Mode demo: sensor bio-optik non-invasif.
+                      {detailItem.src === 'api'
+                        ? 'Inferensi AI lokal: MobileNetV3Small + Grad-CAM.'
+                        : 'Mode sampel: sensor bio-optik non-invasif.'}
                     </div>
                   </div>
                 </div>

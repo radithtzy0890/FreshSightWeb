@@ -43,17 +43,17 @@ export const ResultsInspector: React.FC<ResultsInspectorProps> = ({ result }) =>
   return (
     <>
       <section id="section-cara-kerja" className="pt-28 pb-20 bg-[#1E6B3E] relative overflow-hidden text-white border-t-2 border-black">
-        <div className="absolute top-24 right-16 text-3xl select-none pointer-events-none">✦</div>
-        <div className="absolute bottom-24 left-1/4 text-2xl select-none pointer-events-none">✦</div>
+        <div className="absolute top-24 right-16 text-3xl select-none pointer-events-none animate-ono-twinkle">✦</div>
+        <div className="absolute bottom-24 left-1/4 text-2xl select-none pointer-events-none animate-ono-twinkle-delay-1">✦</div>
 
         <div className="max-w-7xl mx-auto px-6 sm:px-10 relative z-10">
           <div className="max-w-3xl mb-10">
             <span className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#8DF947] mb-2">
               <CheckCircle2 size={14} />
-              Alur Analisis
+              Alur Analisis · 解析フロー
             </span>
             <h1 className="font-passata text-5xl sm:text-7xl text-shadow-3d-white uppercase font-bold tracking-tight leading-none">
-              HOW IT WORKS
+              CARA KERJA
             </h1>
             <p className="mt-4 text-sm sm:text-base text-white/85 leading-relaxed max-w-2xl">
               Empat langkah dari satu foto buah menjadi vonis yang bisa dipertanggungjawabkan:
@@ -108,21 +108,23 @@ export const ResultsInspector: React.FC<ResultsInspectorProps> = ({ result }) =>
 
                 {result ? (
                   <div className="relative w-full h-full flex flex-col items-center justify-center text-center">
-                    <div className="relative w-64 sm:w-72 h-44 sm:h-48 rounded-2xl overflow-hidden border-3 border-black shadow-[4px_4px_0_#000000] mb-3 bg-[#EAE3D2] flex items-center justify-center p-2">
+                    <div className="relative w-64 sm:w-72 h-44 sm:h-48 rounded-2xl overflow-hidden border-3 border-black shadow-[4px_4px_0_#000000] mb-3 bg-white flex items-center justify-center">
                       <img
                         src={viewHeatmap && result.cam ? result.cam : result.img || ''}
                         alt="Spesimen hasil analisis"
-                        className="w-full h-full object-contain rounded-xl drop-shadow-md"
+                        className="w-full h-full object-cover object-center"
                       />
-                      <button
-                        onClick={() => {
-                          sound.play('click');
-                          setViewHeatmap(!viewHeatmap);
-                        }}
-                        className="absolute bottom-2 right-2 px-2.5 py-1 rounded-md bg-black text-white font-passata text-[10px] uppercase cursor-pointer"
-                      >
-                        {viewHeatmap ? 'Citra Asli' : 'Heatmap'}
-                      </button>
+                      {result.cam && verdict !== 'tidak_terdeteksi' && (
+                        <button
+                          onClick={() => {
+                            sound.play('click');
+                            setViewHeatmap(!viewHeatmap);
+                          }}
+                          className="absolute bottom-2 right-2 px-2.5 py-1 rounded-full bg-black/85 text-white border border-white/50 font-passata text-[10px] uppercase cursor-pointer hover:bg-black transition-colors"
+                        >
+                          {viewHeatmap ? 'Citra Asli' : 'Heatmap'}
+                        </button>
+                      )}
                     </div>
 
                     <span
@@ -131,22 +133,32 @@ export const ResultsInspector: React.FC<ResultsInspectorProps> = ({ result }) =>
                           ? 'bg-[#8DF947] text-black'
                           : verdict === 'busuk'
                           ? 'bg-[#EB3322] text-white'
+                          : verdict === 'tidak_terdeteksi'
+                          ? 'bg-neutral-800 text-white'
                           : 'bg-[#FFC737] text-black'
                       }`}
                     >
-                      {verdict === 'segar' ? 'SEGAR TERKONFIRMASI' : verdict === 'busuk' ? 'TERDETEKSI BUSUK' : 'STATUS RAGU'} • {confPct}%
+                      {verdict === 'segar'
+                        ? `SEGAR TERKONFIRMASI • ${confPct}%`
+                        : verdict === 'busuk'
+                        ? `TERDETEKSI BUSUK • ${confPct}%`
+                        : verdict === 'tidak_terdeteksi'
+                        ? 'OBJEK TIDAK TERDETEKSI'
+                        : `STATUS RAGU • ${confPct}%`}
                     </span>
 
                     <p className="font-mono-tech text-xs text-black/80 font-bold mt-2">
-                      {result.fruit.toUpperCase()} • DEFEK: {result.rasio || 0}%
+                      {verdict === 'tidak_terdeteksi'
+                        ? 'NON-TARGET / OOD'
+                        : `${result.fruit.toUpperCase()} • DEFEK: ${result.rasio || 0}%`}
                     </p>
                   </div>
                 ) : (
                   <div className="text-center space-y-2">
                     <div className="flex items-center justify-center gap-3 mb-2">
-                      <img src="/fruit/apple_fresh.jpg" alt="Apel" className="w-14 h-14 rounded-2xl border-2 border-black object-contain bg-white shadow-[2px_2px_0_#000000]" />
-                      <img src="/fruit/banana_fresh.jpg" alt="Pisang" className="w-14 h-14 rounded-2xl border-2 border-black object-contain bg-white shadow-[2px_2px_0_#000000]" />
-                      <img src="/fruit/orange_fresh.jpg" alt="Jeruk" className="w-14 h-14 rounded-2xl border-2 border-black object-contain bg-white shadow-[2px_2px_0_#000000]" />
+                      <img src="/fruit/apple_fresh.jpg" alt="Apel" className="w-14 h-14 rounded-2xl border-2 border-black object-cover bg-white shadow-[2px_2px_0_#000000]" />
+                      <img src="/fruit/banana_fresh.jpg" alt="Pisang" className="w-14 h-14 rounded-2xl border-2 border-black object-cover bg-white shadow-[2px_2px_0_#000000]" />
+                      <img src="/fruit/orange_fresh.jpg" alt="Jeruk" className="w-14 h-14 rounded-2xl border-2 border-black object-cover bg-white shadow-[2px_2px_0_#000000]" />
                     </div>
                     <h3 className="font-passata text-2xl text-black uppercase">
                       KOTAK OBSERVASI SPESIMEN

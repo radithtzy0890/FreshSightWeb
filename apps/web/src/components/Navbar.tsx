@@ -28,8 +28,8 @@ export const Navbar: React.FC = () => {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-[#FFC737] border-b-2 border-black transition-colors">
-      <div className="max-w-7xl mx-auto px-4 sm:px-10 h-18 flex items-center justify-between gap-2">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-[#FFC737]/95 backdrop-blur-md border-b-2 border-black transition-colors">
+      <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-10 h-18 flex items-center justify-between gap-2">
 
         {/* Desktop Left Nav */}
         <nav className="hidden md:flex items-center gap-6 lg:gap-8" aria-label="Navigasi Utama">
