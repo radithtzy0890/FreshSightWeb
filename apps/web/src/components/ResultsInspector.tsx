@@ -52,7 +52,7 @@ export const ResultsInspector: React.FC<ResultsInspectorProps> = ({ result }) =>
               <CheckCircle2 size={14} />
               Alur Analisis · 解析フロー
             </span>
-            <h1 className="font-passata text-5xl sm:text-7xl text-shadow-3d-white uppercase font-bold tracking-tight leading-none">
+            <h1 className="font-passata text-5xl sm:text-7xl text-shadow-3d-white uppercase leading-none">
               CARA KERJA
             </h1>
             <p className="mt-4 text-sm sm:text-base text-white/85 leading-relaxed max-w-2xl">
@@ -208,13 +208,13 @@ export const ResultsInspector: React.FC<ResultsInspectorProps> = ({ result }) =>
         <div className="absolute bottom-20 right-28 text-3xl select-none pointer-events-none">✦</div>
 
         <div className="max-w-4xl mx-auto px-6 relative z-10 space-y-4">
-          <h2 className="font-passata text-4xl sm:text-6xl lg:text-7xl text-shadow-3d-white uppercase font-bold leading-tight tracking-tight">
+          <h2 className="font-passata text-4xl sm:text-6xl lg:text-7xl text-shadow-3d-white uppercase leading-tight">
             PILIH BUAH TERBAIK<br />
             UNTUK KELUARGA<br />
             ATAU BISNISMU
           </h2>
 
-          <p className="font-passata text-xl text-white/90 tracking-wide mt-2">
+          <p className="text-base sm:text-xl font-semibold text-white/90 tracking-wide mt-2">
             Kualitas nutrisi buah tanpa kompromi 🍏
           </p>
         </div>

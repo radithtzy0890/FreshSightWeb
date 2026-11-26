@@ -175,7 +175,7 @@ export const ResultDetailModal: React.FC<ResultDetailModalProps> = ({ result, on
               >
                 {verdictLabel(verdict)}
               </span>
-              <h2 className="font-passata text-3xl sm:text-4xl text-black font-bold uppercase tracking-tight">
+              <h2 className="font-passata text-3xl sm:text-4xl text-black uppercase tracking-wide">
                 {getDiagnosisTitle(result)}
               </h2>
               <p className="font-mono-tech text-xs text-black/60 mt-1">

@@ -154,7 +154,7 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
               <Sparkles size={14} />
               <span>Rekam Jejak Bio-Optik</span>
             </div>
-            <h3 className="font-passata text-3xl sm:text-4xl uppercase tracking-tight text-white">
+            <h3 className="font-passata text-3xl sm:text-4xl uppercase tracking-wide text-white">
               HISTORI FOTO TERKIRIM
             </h3>
           </div>
@@ -296,7 +296,7 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
                 placeholder="Cari buah..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 rounded-xl border-2 border-black bg-white font-passata text-sm text-black placeholder:text-black/40 focus:outline-none focus:ring-2 focus:ring-[#8DF947]"
+                className="w-full pl-9 pr-3 py-2 rounded-xl border-2 border-black bg-white text-sm font-semibold text-black placeholder:text-black/45 focus:outline-none focus:ring-2 focus:ring-[#8DF947]"
               />
             </div>
 
@@ -305,7 +305,7 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
               <select
                 value={filterFruit}
                 onChange={(e) => setFilterFruit(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border-2 border-black bg-white font-passata text-sm text-black focus:outline-none focus:ring-2 focus:ring-[#8DF947] cursor-pointer"
+                className="w-full px-3 py-2 rounded-xl border-2 border-black bg-white text-sm font-semibold text-black focus:outline-none focus:ring-2 focus:ring-[#8DF947] cursor-pointer"
               >
                 <option value="all">Semua buah</option>
                 <option value="apple">Apel (Fuji)</option>
@@ -319,7 +319,7 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border-2 border-black bg-white font-passata text-sm text-black focus:outline-none focus:ring-2 focus:ring-[#8DF947] cursor-pointer"
+                className="w-full px-3 py-2 rounded-xl border-2 border-black bg-white text-sm font-semibold text-black focus:outline-none focus:ring-2 focus:ring-[#8DF947] cursor-pointer"
               >
                 <option value="all">Semua status</option>
                 <option value="segar">Segar</option>
@@ -533,7 +533,7 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
                   >
                     {verdictBadgeLabel(detailVerdict)}
                   </span>
-                  <h3 className="font-passata text-3xl sm:text-4xl text-black font-bold uppercase tracking-tight">
+                  <h3 className="font-passata text-3xl sm:text-4xl text-black uppercase tracking-wide">
                     {getDiagnosisTitle(detailItem)}
                   </h3>
                 </div>

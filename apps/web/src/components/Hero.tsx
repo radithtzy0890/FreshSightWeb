@@ -426,13 +426,13 @@ export const Hero: React.FC<HeroProps> = ({
   }, [stopCamera]);
 
   return (
-    <section id="section-hero" className="pt-28 pb-16 min-h-[92vh] bg-[#FFC737] flex items-center justify-center relative overflow-hidden">
+    <section id="section-hero" className="pt-28 pb-16 min-h-[92vh] w-full bg-[#FFC737] flex items-center justify-center relative overflow-x-clip overflow-y-hidden">
 
       {/* Floating Sparkles (Planet Oño Authentic Interactive Twinkle) */}
-      <div className="absolute top-36 left-1/4 text-2xl select-none pointer-events-none animate-ono-twinkle text-white drop-shadow-[0_2px_2px_#000]">✦</div>
-      <div className="absolute bottom-24 left-16 text-3xl select-none pointer-events-none animate-ono-twinkle-delay-1 text-black">✦</div>
-      <div className="absolute top-44 right-1/3 text-2xl select-none pointer-events-none animate-ono-twinkle-delay-2 text-white drop-shadow-[0_2px_2px_#000]">✦</div>
-      <div className="absolute top-28 right-16 text-xl select-none pointer-events-none animate-ono-twinkle text-black">✦</div>
+      <div className="absolute top-28 left-[22%] text-2xl select-none pointer-events-none animate-ono-twinkle text-white drop-shadow-[0_2px_2px_#000]">✦</div>
+      <div className="hidden sm:block absolute bottom-24 left-12 lg:left-16 text-3xl select-none pointer-events-none animate-ono-twinkle-delay-1 text-black">✦</div>
+      <div className="hidden sm:block absolute bottom-20 right-[10%] text-2xl select-none pointer-events-none animate-ono-twinkle-delay-2 text-white drop-shadow-[0_2px_2px_#000]">✦</div>
+      <div className="absolute top-28 right-12 lg:right-16 text-xl select-none pointer-events-none animate-ono-twinkle text-black">✦</div>
 
       <div className="max-w-7xl mx-auto px-6 sm:px-10 w-full relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
@@ -440,12 +440,12 @@ export const Hero: React.FC<HeroProps> = ({
           {/* Left Column: Comic Explosion Sticker Badge & Input Triggers */}
           <div className="lg:col-span-3 flex flex-col items-center lg:items-start order-2 lg:order-1">
             <div
-              className="relative group cursor-pointer select-none"
+              className="relative group cursor-pointer select-none mt-4 sm:mt-2"
               onClick={handleTriggerAnalysis}
               title="Klik stiker untuk analisis instan spesimen"
             >
-              {/* Rotating Circular Text Stamp (Planet Oño Authentic Rotating Badge) */}
-              <div className="absolute -top-6 -right-6 sm:-right-8 w-24 h-24 sm:w-28 sm:h-28 z-20 pointer-events-none">
+              {/* Rotating Circular Text Stamp (Peeking cleanly behind upper-right corner) */}
+              <div className="absolute -top-9 -right-9 sm:-top-10 sm:-right-11 w-24 h-24 sm:w-28 sm:h-28 z-0 pointer-events-none">
                 <div className="w-full h-full relative flex items-center justify-center animate-ono-spin-slow">
                   <svg viewBox="0 0 100 100" className="w-full h-full overflow-visible">
                     <path
@@ -453,7 +453,7 @@ export const Hero: React.FC<HeroProps> = ({
                       d="M 50, 50 m -37, 0 a 37,37 0 1,1 74,0 a 37,37 0 1,1 -74,0"
                       fill="none"
                     />
-                    <text className="font-passata text-[9.5px] fill-black uppercase tracking-[0.24em] font-black">
+                    <text className="font-passata text-[9.5px] fill-black uppercase tracking-[0.24em]">
                       <textPath href="#badgeCirclePath" startOffset="0%">
                         ✦ FRESH BITE ✦ 新鮮な果物 ✦ 100% ALAMI ✦
                       </textPath>
@@ -467,7 +467,7 @@ export const Hero: React.FC<HeroProps> = ({
               </div>
 
               {/* Main Comic Sticker Card with floating wobble */}
-              <div className="sticker-blast relative overflow-hidden">
+              <div className="sticker-blast relative z-10 overflow-hidden">
                 <p className="font-mono-tech text-xs text-black font-bold tracking-wider uppercase mb-1">
                   新鮮な果物
                 </p>
@@ -523,7 +523,7 @@ export const Hero: React.FC<HeroProps> = ({
 
             {/* Tips Foto yang Pas Card */}
             <div className="mt-5 w-full max-w-[260px] lg:max-w-[225px] bg-[#F7F2E5] text-black border-2 border-black shadow-[3px_3px_0_#000000] rounded-2xl p-3 text-left">
-              <div className="flex items-center gap-1.5 mb-1.5 font-passata text-xs font-bold uppercase tracking-tight text-black">
+              <div className="flex items-center gap-1.5 mb-1.5 font-passata text-xs uppercase tracking-wider text-black">
                 <span>💡</span>
                 <span>Tips foto yang pas</span>
               </div>

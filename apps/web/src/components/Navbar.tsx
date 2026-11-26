@@ -4,13 +4,13 @@ import { Volume2, VolumeX, Menu, X } from 'lucide-react';
 import { sound } from '../services/soundEngine';
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
-  `font-passata text-lg uppercase tracking-tight transition-all duration-200 hover:opacity-75 cursor-pointer select-none ${
-    isActive ? 'text-black font-black underline decoration-2 underline-offset-4' : 'text-black/65 font-bold'
+  `font-passata text-lg uppercase tracking-wide transition-all duration-200 hover:opacity-75 cursor-pointer select-none ${
+    isActive ? 'text-black underline decoration-2 underline-offset-4' : 'text-black/70'
   }`;
 
 const mobileNavClass = ({ isActive }: { isActive: boolean }) =>
-  `font-passata text-xl uppercase tracking-tight py-2.5 px-4 rounded-xl transition-all cursor-pointer flex items-center justify-between ${
-    isActive ? 'bg-black text-[#FFC737] font-black shadow-[2px_2px_0_#000]' : 'text-black font-bold hover:bg-black/10'
+  `font-passata text-xl uppercase tracking-wide py-2.5 px-4 rounded-xl transition-all cursor-pointer flex items-center justify-between ${
+    isActive ? 'bg-black text-[#FFC737] shadow-[2px_2px_0_#000]' : 'text-black hover:bg-black/10'
   }`;
 
 export const Navbar: React.FC = () => {
@@ -79,11 +79,11 @@ export const Navbar: React.FC = () => {
           onClick={() => sound.play('swoosh')}
           className="flex flex-col items-center group cursor-pointer transition-transform hover:scale-105 shrink-0"
         >
-          <div className="flex items-center gap-1 font-passata text-2xl sm:text-3xl text-black tracking-tighter uppercase font-bold leading-none">
+          <div className="flex items-center gap-1.5 font-passata text-2xl sm:text-3xl text-black tracking-wide uppercase leading-none">
             <span>FRESH</span>
             <span className="relative inline-flex items-center justify-center">
               SIGHT
-              <span className="absolute -top-1.5 right-1.5 text-xs text-white drop-shadow-[0_1px_1px_#000] animate-ono-twinkle">✦</span>
+              <span className="absolute -top-1.5 -right-2 text-xs text-white drop-shadow-[0_1px_1px_#000] animate-ono-twinkle">✦</span>
             </span>
           </div>
           <span className="font-mono-tech text-[9px] sm:text-[10px] text-black font-bold tracking-widest -mt-0.5">

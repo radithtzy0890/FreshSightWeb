@@ -48,8 +48,8 @@ export const ModelDataPage: React.FC = () => {
             <BarChart3 size={14} />
             Riset & Evaluasi
           </span>
-          <h1 className="font-passata text-5xl sm:text-7xl text-shadow-3d-white uppercase font-bold tracking-tight leading-none">
-            MODEL & DATA
+          <h1 className="font-passata text-5xl sm:text-7xl text-shadow-3d-white uppercase leading-none">
+            MODEL &amp; DATA
           </h1>
           <p className="mt-4 text-sm sm:text-base text-white/80 leading-relaxed max-w-2xl">
             MobileNetV3Small dengan head enam kelas, dievaluasi pada test asli, holdout
