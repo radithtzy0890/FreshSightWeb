@@ -16,6 +16,36 @@ import cv2
 import keras
 import numpy as np
 import tensorflow as tf
+
+# Keras cross-version deserialization compatibility patch
+try:
+    from keras.src.layers.layer import Layer
+    from keras.src.initializers.random_initializers import GlorotUniform
+
+    _UNKNOWN_KWARGS = {
+        "input_axes",
+        "output_axes",
+        "quantization_config",
+        "renorm",
+        "renorm_clipping",
+        "renorm_momentum",
+    }
+
+    _orig_layer_init = Layer.__init__
+    def _compat_layer_init(self, *args, **kwargs):
+        for u in _UNKNOWN_KWARGS:
+            kwargs.pop(u, None)
+        return _orig_layer_init(self, *args, **kwargs)
+    Layer.__init__ = _compat_layer_init
+
+    _orig_glorot_init = GlorotUniform.__init__
+    def _compat_glorot_init(self, *args, **kwargs):
+        for u in _UNKNOWN_KWARGS:
+            kwargs.pop(u, None)
+        return _orig_glorot_init(self, *args, **kwargs)
+    GlorotUniform.__init__ = _compat_glorot_init
+except Exception:
+    pass
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
