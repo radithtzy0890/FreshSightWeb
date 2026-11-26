@@ -573,13 +573,17 @@ export const Hero: React.FC<HeroProps> = ({
               ref={capsuleRef}
               onMouseMove={handleMouseMove}
               onMouseLeave={handleMouseLeave}
-              className="relative w-[280px] sm:w-[320px] h-[380px] sm:h-[420px] rounded-[160px] border-3 border-black shadow-[8px_8px_0_#000000] flex flex-col items-center justify-center p-5 sm:p-6 text-center cursor-pointer overflow-hidden group z-10 transition-colors duration-700 ease-out"
+              className={`relative border-3 border-black shadow-[8px_8px_0_#000000] flex flex-col items-center justify-center p-4 sm:p-5 text-center cursor-pointer overflow-hidden group z-10 transition-all duration-500 ease-out ${
+                uploadedPhoto || cameraActive
+                  ? 'w-[300px] sm:w-[360px] h-[330px] sm:h-[370px] rounded-[135px]'
+                  : 'w-[280px] sm:w-[320px] h-[380px] sm:h-[420px] rounded-[160px] p-5 sm:p-6'
+              }`}
               style={{
                 backgroundColor: capsuleColor,
                 transform: `perspective(900px) rotateY(${mouseOffset.x * 12}deg) rotateX(${-mouseOffset.y * 12}deg)`,
                 transition:
                   mouseOffset.x === 0
-                    ? 'transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.7s ease-out'
+                    ? 'transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.7s ease-out, width 0.45s ease-out, height 0.45s ease-out, border-radius 0.45s ease-out'
                     : 'background-color 0.7s ease-out',
               }}
               onClick={() => {
@@ -673,7 +677,7 @@ export const Hero: React.FC<HeroProps> = ({
                 </div>
               ) : uploadedPhoto ? (
                 <div
-                  className="relative w-full h-full rounded-[136px] overflow-hidden border-3 border-black bg-white flex items-center justify-center"
+                  className="relative w-full h-full rounded-[118px] overflow-hidden border-3 border-black bg-white"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (result?.cam && activeVerdict !== 'tidak_terdeteksi') {
@@ -682,27 +686,15 @@ export const Hero: React.FC<HeroProps> = ({
                     }
                   }}
                 >
-                  {/* Ambient soft backdrop matching the photo's own edges */}
-                  <img
-                    src={showHeatmap && result?.cam ? result.cam : uploadedPhoto}
-                    alt=""
-                    aria-hidden="true"
-                    className="pointer-events-none absolute inset-0 w-full h-full object-cover scale-125 blur-2xl opacity-45 select-none"
-                  />
-                  {/* Full uncropped specimen centered with breathing room from top/bottom pills */}
                   <img
                     src={showHeatmap && result?.cam ? result.cam : uploadedPhoto}
                     alt="Spesimen terunggah"
-                    className={`relative z-10 w-full h-full transition-transform duration-500 ease-out group-hover:scale-[1.03] ${
-                      showHeatmap && result?.cam
-                        ? 'object-cover object-center'
-                        : 'object-contain px-2.5 py-11'
-                    }`}
+                    className="w-full h-full object-cover object-center transition-transform duration-500 ease-out group-hover:scale-[1.03]"
                   />
-                  <div className="pointer-events-none absolute inset-0 z-10 rounded-[136px] shadow-[inset_0_0_24px_rgba(0,0,0,0.12)]" />
+                  <div className="pointer-events-none absolute inset-0 rounded-[118px] shadow-[inset_0_0_20px_rgba(0,0,0,0.1)]" />
 
                   {activeVerdict && (
-                    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+                    <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
                       <span
                         className={`inline-flex items-center gap-1 px-3 py-1 rounded-full border-2 border-black font-passata text-[11px] uppercase font-bold shadow-[2px_2px_0_#000000] whitespace-nowrap ${
                           activeVerdict === 'segar'
@@ -727,7 +719,7 @@ export const Hero: React.FC<HeroProps> = ({
                     </div>
                   )}
 
-                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5">
+                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5">
                     {result?.cam && activeVerdict !== 'tidak_terdeteksi' && (
                       <button
                         type="button"

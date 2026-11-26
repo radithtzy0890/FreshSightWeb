@@ -111,14 +111,8 @@ export const ResultsInspector: React.FC<ResultsInspectorProps> = ({ result }) =>
                     <div className="relative w-64 sm:w-72 h-44 sm:h-48 rounded-2xl overflow-hidden border-3 border-black shadow-[4px_4px_0_#000000] mb-3 bg-white flex items-center justify-center">
                       <img
                         src={viewHeatmap && result.cam ? result.cam : result.img || ''}
-                        alt=""
-                        aria-hidden="true"
-                        className="pointer-events-none absolute inset-0 w-full h-full object-cover scale-125 blur-xl opacity-40"
-                      />
-                      <img
-                        src={viewHeatmap && result.cam ? result.cam : result.img || ''}
                         alt="Spesimen hasil analisis"
-                        className="relative z-10 w-full h-full object-contain p-1.5"
+                        className="w-full h-full object-cover object-center"
                       />
                       {result.cam && verdict !== 'tidak_terdeteksi' && (
                         <button

@@ -216,14 +216,8 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
                       <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-white border-2 border-black mb-2 flex items-center justify-center">
                         <img
                           src={photo}
-                          alt=""
-                          aria-hidden="true"
-                          className="pointer-events-none absolute inset-0 w-full h-full object-cover scale-125 blur-xl opacity-40"
-                        />
-                        <img
-                          src={photo}
                           alt={fruitName}
-                          className="relative z-10 w-full h-full object-contain p-1.5 group-hover:scale-105 transition-transform duration-300"
+                          className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
                         />
 
                         {/* Stamped Badge */}
@@ -377,14 +371,8 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
                       <div className="relative w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-2xl overflow-hidden bg-white border-2 border-black flex items-center justify-center shadow-xs">
                         <img
                           src={photo}
-                          alt=""
-                          aria-hidden="true"
-                          className="pointer-events-none absolute inset-0 w-full h-full object-cover scale-125 blur-lg opacity-40"
-                        />
-                        <img
-                          src={photo}
                           alt={fruitName}
-                          className="relative z-10 w-full h-full object-contain p-1"
+                          className="w-full h-full object-cover object-center"
                         />
                       </div>
 
@@ -476,20 +464,8 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
                         ? detailItem.msk
                         : detailItem.img || detailItem.thumb || '/fruit/apple_fresh.jpg'
                     }
-                    alt=""
-                    aria-hidden="true"
-                    className="pointer-events-none absolute inset-0 w-full h-full object-cover scale-125 blur-2xl opacity-40"
-                  />
-                  <img
-                    src={
-                      viewMode === 'cam' && detailItem.cam
-                        ? detailItem.cam
-                        : viewMode === 'mask' && detailItem.msk
-                        ? detailItem.msk
-                        : detailItem.img || detailItem.thumb || '/fruit/apple_fresh.jpg'
-                    }
                     alt="Spesimen Analisis"
-                    className="relative z-10 w-full h-full object-contain p-2"
+                    className="w-full h-full object-cover object-center"
                   />
 
                   {/* Stamped Corner Badge */}
