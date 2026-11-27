@@ -200,39 +200,41 @@ export const App: React.FC = () => {
       <Navbar />
 
       <main>
-        <Routes>
-          <Route
-            path="/"
-            element={
-              <Hero
-                onAnalysisComplete={handleAnalysisComplete}
-                onResetResult={() => setCurrentResult(null)}
-                showToast={showToast}
-                presets={DEMO_PRESETS}
-                result={currentResult}
-              />
-            }
-          />
-          <Route
-            path="/cara-kerja"
-            element={<ResultsInspector result={currentResult} />}
-          />
-          <Route path="/model" element={<ModelDataPage />} />
-          <Route
-            path="/riwayat"
-            element={
-              <HistoryJournal
-                history={history}
-                onSelectDetail={handleSelectHistoryDetail}
-                onDeleteItem={handleDeleteHistoryItem}
-                onUpdateItem={handleUpdateHistoryItem}
-                onClearAll={handleClearHistory}
-                onNavigate={(path) => navigate(path)}
-              />
-            }
-          />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <div key={location.pathname} className="animate-page-enter">
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <Hero
+                  onAnalysisComplete={handleAnalysisComplete}
+                  onResetResult={() => setCurrentResult(null)}
+                  showToast={showToast}
+                  presets={DEMO_PRESETS}
+                  result={currentResult}
+                />
+              }
+            />
+            <Route
+              path="/cara-kerja"
+              element={<ResultsInspector result={currentResult} />}
+            />
+            <Route path="/model" element={<ModelDataPage />} />
+            <Route
+              path="/riwayat"
+              element={
+                <HistoryJournal
+                  history={history}
+                  onSelectDetail={handleSelectHistoryDetail}
+                  onDeleteItem={handleDeleteHistoryItem}
+                  onUpdateItem={handleUpdateHistoryItem}
+                  onClearAll={handleClearHistory}
+                  onNavigate={(path) => navigate(path)}
+                />
+              }
+            />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </div>
       </main>
 
       <Footer />

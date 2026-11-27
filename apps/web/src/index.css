@@ -373,6 +373,23 @@ p {
   }
 }
 
+@keyframes fs-page-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-page-enter {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: fs-page-enter 0.32s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+}
+
 /* ── Interactive Card Hover Lift (Planet Oño Tactile 3D) ── */
 .interactive-card {
   transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease;
@@ -425,7 +442,7 @@ p {
   height: 6px;
   background: #000000;
   border-radius: 9999px;
-  transition: all 0.3s ease;
+  transition: width 0.38s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* ── Step Buttons (Image 2 Bottom: [ 1 ] [ 2 ] [ 3 ] [ 4 ] [ Claim your toy ]) ── */
@@ -529,17 +546,6 @@ p {
   @media (prefers-reduced-motion: no-preference) {
     animation: fs-single-glide 9s ease-in-out infinite alternate;
   }
-}
-
-.marquee-track.is-paused,
-.marquee-track:hover,
-.marquee-track:active,
-.marquee-track:focus-within,
-.marquee-track--glide.is-paused,
-.marquee-track--glide:hover,
-.marquee-track--glide:active,
-.marquee-track--glide:focus-within {
-  animation-play-state: paused;
 }
 
 /* ── Circular Celestial / Radar Charts (Image 4) ── */

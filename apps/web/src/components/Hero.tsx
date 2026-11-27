@@ -832,7 +832,10 @@ export const Hero: React.FC<HeroProps> = ({
             </h1>
 
             {/* Curated Short Copy (Clean 2-line blurbs) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs sm:text-sm text-black font-semibold leading-relaxed">
+            <div
+              key={currentIdx}
+              className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs sm:text-sm text-black font-semibold leading-relaxed animate-specimen-pop"
+            >
               <p>{specimen.blurb1}</p>
               <p>{specimen.blurb2}</p>
             </div>

@@ -73,7 +73,7 @@ export const ResultsInspector: React.FC<ResultsInspectorProps> = ({ result }) =>
                       setActiveStep(step.id);
                     }}
                     onMouseEnter={() => sound.play('hover')}
-                    className={`text-left p-5 rounded-2xl border-3 border-black transition-transform hover:-translate-y-1 cursor-pointer ${
+                    className={`text-left p-5 rounded-2xl border-3 border-black transition-all duration-300 ease-out hover:-translate-y-1 active:scale-[0.98] cursor-pointer ${
                       isActive
                         ? 'bg-[#F7F2E5] shadow-[6px_6px_0_#000000]'
                         : 'bg-[#F7F2E5]/85 shadow-[4px_4px_0_#000000]'
@@ -154,7 +154,7 @@ export const ResultsInspector: React.FC<ResultsInspectorProps> = ({ result }) =>
                     </p>
                   </div>
                 ) : (
-                  <div className="text-center space-y-2">
+                  <div key={activeStep} className="text-center space-y-2 animate-specimen-pop">
                     <div className="flex items-center justify-center gap-3 mb-2">
                       <img src="/fruit/apple_fresh.jpg" alt="Apel" className="w-14 h-14 rounded-2xl border-2 border-black object-cover bg-white shadow-[2px_2px_0_#000000]" />
                       <img src="/fruit/banana_fresh.jpg" alt="Pisang" className="w-14 h-14 rounded-2xl border-2 border-black object-cover bg-white shadow-[2px_2px_0_#000000]" />

@@ -10,6 +10,7 @@ import {
   getExplanationText,
   resolveVerdict,
 } from '../services/cvEngine';
+import { downloadSummaryPdf } from '../services/pdfReport';
 import { sound } from '../services/soundEngine';
 
 interface ResultDetailModalProps {
@@ -25,7 +26,7 @@ const verdictLabel = (verdict: Verdict): string =>
     : verdict === 'busuk'
     ? 'Busuk'
     : verdict === 'tidak_terdeteksi'
-    ? 'Tidak Terdeteksi'
+    ? 'Bukan Target'
     : 'Status Ragu';
 
 const verdictClass = (verdict: Verdict): string =>
@@ -34,11 +35,12 @@ const verdictClass = (verdict: Verdict): string =>
     : verdict === 'busuk'
     ? 'bg-[#EB3322] text-white'
     : verdict === 'tidak_terdeteksi'
-    ? 'bg-slate-700 text-white'
+    ? 'bg-neutral-800 text-white'
     : 'bg-[#FFC737] text-black';
 
 export const ResultDetailModal: React.FC<ResultDetailModalProps> = ({ result, onClose }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('asli');
+  const [exportingPdf, setExportingPdf] = useState(false);
   const multipleFruits = (result.fruitCount ?? 1) > 1;
   const verdict = resolveVerdict(result);
   const fruitName = FRUIT_NAMES[result.fruit];
@@ -61,39 +63,15 @@ export const ResultDetailModal: React.FC<ResultDetailModalProps> = ({ result, on
       ? result.msk
       : result.img || result.thumb || '';
 
-  const formatSafeDate = (dateStr: string): string => {
-    const parsed = new Date(dateStr);
-    return Number.isNaN(parsed.getTime()) ? dateStr : parsed.toLocaleString('id-ID');
-  };
-
-  const downloadSummary = () => {
+  const downloadSummary = async () => {
+    if (exportingPdf) return;
     sound.play('click');
-    const lines = [
-      'FreshSight - Ringkasan Analisis',
-      `Tanggal: ${formatSafeDate(result.date)}`,
-      `Buah: ${verdict === 'tidak_terdeteksi' ? 'Tidak Terdeteksi' : fruitName}`,
-      `Status: ${verdictLabel(verdict)}`,
-      `Keyakinan: ${formatPercent(result.conf)}`,
-      `Rasio area cacat: ${result.rasio || 0}%`,
-      `Jumlah bercak: ${result.n || 0}`,
-      `Lokasi bercak: ${result.loc || '–'}`,
-      `Jarak warna: ${result.jw ?? 0}`,
-      `Tekstur: ${result.tk ?? 0}`,
-      `Model: ${result.model}`,
-      ...(result.userCorrection ? [`Koreksi pengguna: ${result.userCorrection}`] : []),
-      '',
-      'Penjelasan:',
-      explanation,
-    ];
-    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = `freshsight-${result.fruit}-${result.id}.txt`;
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    URL.revokeObjectURL(url);
+    setExportingPdf(true);
+    try {
+      await downloadSummaryPdf(result);
+    } finally {
+      setExportingPdf(false);
+    }
   };
 
   return createPortal(
@@ -106,7 +84,7 @@ export const ResultDetailModal: React.FC<ResultDetailModalProps> = ({ result, on
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-4xl bg-[#F7F2E5] text-black rounded-3xl border-3 border-black shadow-[10px_10px_0_#000000] p-5 sm:p-8 max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain"
+        className="relative w-full max-w-4xl bg-[#F7F2E5] text-black rounded-3xl border-3 border-black shadow-[10px_10px_0_#000000] p-5 sm:p-8 max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain animate-specimen-pop"
         data-lenis-prevent
         onClick={(event) => event.stopPropagation()}
       >
@@ -255,10 +233,11 @@ export const ResultDetailModal: React.FC<ResultDetailModalProps> = ({ result, on
             <div className="flex flex-wrap gap-2 pt-1">
               <button
                 onClick={downloadSummary}
-                className="px-4 py-2 rounded-xl border-2 border-black bg-[#8DF947] text-black hover:bg-[#A3FF6B] font-passata text-xs uppercase font-bold shadow-[2px_2px_0_#000000] cursor-pointer flex items-center gap-1.5"
+                disabled={exportingPdf}
+                className="px-4 py-2 rounded-xl border-2 border-black bg-[#8DF947] text-black hover:bg-[#A3FF6B] font-passata text-xs uppercase font-bold shadow-[2px_2px_0_#000000] cursor-pointer transition-all active:scale-95 flex items-center gap-1.5 disabled:opacity-60"
               >
                 <Download size={14} />
-                Unduh Ringkasan
+                {exportingPdf ? 'Menyiapkan PDF...' : 'Unduh Ringkasan PDF'}
               </button>
             </div>
           </div>

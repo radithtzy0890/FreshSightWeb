@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Maximize2, Trash2, X, Search, FileText, Copy, RotateCcw, Check, Sparkles, Pause, Play } from 'lucide-react';
+import { Maximize2, Trash2, X, Search, FileText, Copy, RotateCcw, Check, Sparkles } from 'lucide-react';
 import { AnalysisResult, Verdict } from '../types';
 import {
   FRUIT_NAMES,
@@ -9,6 +9,7 @@ import {
   MODEL_LABELS,
   resolveVerdict,
 } from '../services/cvEngine';
+import { downloadSummaryPdf } from '../services/pdfReport';
 import { sound } from '../services/soundEngine';
 
 interface HistoryJournalProps {
@@ -55,7 +56,7 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
   const [feedbackSent, setFeedbackSent] = useState<string | null>(null);
   const [showCorrection, setShowCorrection] = useState(false);
   const [correctionLabel, setCorrectionLabel] = useState('fresh_apple');
-  const [marqueePaused, setMarqueePaused] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   // Filtered History list
   const filteredHistory = useMemo(() => {
@@ -105,39 +106,15 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
     navigator.clipboard?.writeText(text);
   };
 
-  const handleDownloadSummary = (item: AnalysisResult) => {
+  const handleDownloadSummary = async (item: AnalysisResult) => {
+    if (exportingPdf) return;
     sound.play('click');
-    const itemVerdict = resolveVerdict(item);
-    const parsedDate = new Date(item.date);
-    const safeDate = Number.isNaN(parsedDate.getTime())
-      ? item.date
-      : parsedDate.toLocaleString('id-ID');
-    const lines = [
-      'FreshSight - Ringkasan Analisis',
-      `Tanggal: ${safeDate}`,
-      `Diagnosis: ${getDiagnosisTitle(item)}`,
-      `Status: ${verdictLabel(itemVerdict)}`,
-      `Keyakinan: ${formatPercent(item.conf)}`,
-      `Rasio area cacat: ${item.rasio || 0}%`,
-      `Jumlah bercak: ${item.n || 0}`,
-      `Lokasi bercak: ${item.loc || '–'}`,
-      `Jarak warna: ${item.jw ?? 0}`,
-      `Tekstur: ${item.tk ?? 0}`,
-      `Model: ${item.model}`,
-      ...(item.userCorrection ? [`Koreksi pengguna: ${item.userCorrection}`] : []),
-      '',
-      'Penjelasan:',
-      getExplanationText(item),
-    ];
-    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = `freshsight-${item.fruit}-${item.id}.txt`;
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    URL.revokeObjectURL(url);
+    setExportingPdf(true);
+    try {
+      await downloadSummaryPdf(item);
+    } finally {
+      setExportingPdf(false);
+    }
   };
 
   const detailVerdict: Verdict = detailItem ? resolveVerdict(detailItem) : 'ragu';
@@ -178,29 +155,10 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
           </div>
         </div>
 
-        {/* 1. ANIMATED RUNNING REEL / MARQUEE TICKER */}
+        {/* 1. ANIMATED RUNNING REEL (Otomatis bergerak mulus) */}
         {marqueeItems.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono-tech text-white/75">
-              <span className="flex items-center gap-1.5">
-                <span className={`w-2 h-2 rounded-full bg-[#8DF947] ${marqueePaused ? '' : 'animate-ping'}`} />
-                <span>GALERI RIWAYAT (ARAHKAN KURSOR / JEDA UNTUK INSPEKSI)</span>
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  sound.play('click');
-                  setMarqueePaused((prev) => !prev);
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 hover:bg-white/25 text-white border border-white/30 text-[11px] font-passata uppercase cursor-pointer transition-colors"
-              >
-                {marqueePaused ? <Play size={12} /> : <Pause size={12} />}
-                <span>{marqueePaused ? 'Putar' : 'Jeda'}</span>
-              </button>
-            </div>
-
-            <div className={`${useMarqueeLoop ? 'marquee-container' : 'marquee-container--glide'} py-2`}>
-              <div className={`${useMarqueeLoop ? 'marquee-track' : 'marquee-track--glide'} ${marqueePaused ? 'is-paused' : ''}`}>
+          <div className={`${useMarqueeLoop ? 'marquee-container' : 'marquee-container--glide'} py-2`}>
+            <div className={useMarqueeLoop ? 'marquee-track' : 'marquee-track--glide'}>
                 {marqueeItems.map((item, idx) => {
                   const verdict: Verdict = resolveVerdict(item);
                   const photo = item.thumb || item.img || '/fruit/apple_fresh.jpg';
@@ -281,7 +239,6 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
                   );
                 })}
               </div>
-            </div>
           </div>
         )}
 
@@ -390,8 +347,10 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
                               verdict === 'segar'
                                 ? 'bg-[#8DF947] text-black'
                                 : verdict === 'busuk'
-                                ? 'bg-[#FDE8E1] text-[#C9421A]'
-                                : 'bg-[#FFE8B3] text-[#B45309]'
+                                ? 'bg-[#EB3322] text-white'
+                                : verdict === 'tidak_terdeteksi'
+                                ? 'bg-neutral-800 text-white'
+                                : 'bg-[#FFC737] text-black'
                             }`}
                           >
                             {verdictBadgeLabel(verdict)}
@@ -435,7 +394,7 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
           onClick={() => setDetailItem(null)}
         >
           <div
-            className="relative w-full max-w-4xl bg-[#F7F2E5] text-black rounded-3xl border-3 border-black shadow-[10px_10px_0_#000000] p-6 sm:p-8 max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain"
+            className="relative w-full max-w-4xl bg-[#F7F2E5] text-black rounded-3xl border-3 border-black shadow-[10px_10px_0_#000000] p-6 sm:p-8 max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain animate-specimen-pop"
             data-lenis-prevent
             onClick={(e) => e.stopPropagation()}
           >
@@ -525,10 +484,12 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
                   <span
                     className={`inline-flex items-center px-3 py-0.5 rounded-full text-xs font-passata uppercase font-bold border border-black mb-2 ${
                       detailVerdict === 'segar'
-                        ? 'bg-[#E6F3EA] text-[#1C6E3D]'
+                        ? 'bg-[#8DF947] text-black'
                         : detailVerdict === 'busuk'
-                        ? 'bg-[#FDE8E1] text-[#C9421A]'
-                        : 'bg-[#FFE8B3] text-[#B45309]'
+                        ? 'bg-[#EB3322] text-white'
+                        : detailVerdict === 'tidak_terdeteksi'
+                        ? 'bg-neutral-800 text-white'
+                        : 'bg-[#FFC737] text-black'
                     }`}
                   >
                     {verdictBadgeLabel(detailVerdict)}
@@ -557,9 +518,11 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
                         r="40"
                         stroke={
                           detailVerdict === 'segar'
-                            ? '#1C6E3D'
+                            ? '#1E6B3E'
                             : detailVerdict === 'busuk'
-                            ? '#C9421A'
+                            ? '#EB3322'
+                            : detailVerdict === 'tidak_terdeteksi'
+                            ? '#262626'
                             : '#B45309'
                         }
                         strokeWidth="10"
@@ -620,8 +583,8 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
                               className={`h-full rounded-full transition-all duration-700 ${
                                 isHighlighted
                                   ? detailItem.rot
-                                    ? 'bg-[#C9421A]'
-                                    : 'bg-[#1C6E3D]'
+                                    ? 'bg-[#EB3322]'
+                                    : 'bg-[#1E6B3E]'
                                   : 'bg-black/40'
                               }`}
                               style={{ width: `${Math.max(prob * 100, 2)}%` }}
@@ -757,15 +720,16 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
 
                   <button
                     onClick={() => handleDownloadSummary(detailItem)}
-                    className="py-2 px-4 rounded-xl bg-white hover:bg-black/10 border-2 border-black font-passata text-xs uppercase font-bold transition-colors shadow-[2px_2px_0_#000000] flex items-center gap-1.5 cursor-pointer"
+                    disabled={exportingPdf}
+                    className="py-2 px-4 rounded-xl bg-[#8DF947] hover:bg-[#A3FF6B] border-2 border-black font-passata text-xs uppercase font-bold transition-all shadow-[2px_2px_0_#000000] active:scale-95 flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
                   >
                     <FileText size={14} />
-                    <span>Unduh Ringkasan</span>
+                    <span>{exportingPdf ? 'Menyiapkan PDF...' : 'Unduh Ringkasan PDF'}</span>
                   </button>
 
                   <button
                     onClick={() => handleCopySummary(detailItem)}
-                    className="py-2 px-4 rounded-xl bg-white hover:bg-black/10 border-2 border-black font-passata text-xs uppercase font-bold transition-colors shadow-[2px_2px_0_#000000] flex items-center gap-1.5 cursor-pointer"
+                    className="py-2 px-4 rounded-xl bg-white hover:bg-black/10 border-2 border-black font-passata text-xs uppercase font-bold transition-all shadow-[2px_2px_0_#000000] active:scale-95 flex items-center gap-1.5 cursor-pointer"
                   >
                     <Copy size={14} />
                     <span>Salin ringkasan</span>
@@ -788,7 +752,7 @@ export const HistoryJournal: React.FC<HistoryJournalProps> = ({
           }}
           className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 backdrop-blur-md cursor-zoom-out"
         >
-          <div className="relative max-w-2xl max-h-[85vh] p-3 rounded-3xl border-3 border-black bg-[#F7F2E5] shadow-[8px_8px_0_#000000]">
+          <div className="relative max-w-2xl max-h-[85vh] p-3 rounded-3xl border-3 border-black bg-[#F7F2E5] shadow-[8px_8px_0_#000000] animate-specimen-pop">
             <img src={lightboxPhoto} alt="Full photo" className="max-h-[75vh] rounded-2xl object-contain border-2 border-black" />
             <button
               onClick={() => {
