@@ -9,7 +9,7 @@ import cv2
 import numpy as np
 from PIL import Image
 
-from .config import CALIBRATION, FRUIT_NAMES
+from .config import CALIBRATION, CLIP_APPLE_OVER_ORANGE_MARGIN, FRUIT_NAMES
 
 
 def human_region(region: str) -> str:
@@ -70,6 +70,37 @@ def calibrate_low_confidence_with_defects(
         transfer = min(0.55, defect_ratio * 0.85)
         adjusted[rotten_idx] += transfer
         adjusted[top_idx] = max(0.02, adjusted[top_idx] - transfer * 0.7)
+        return adjusted / max(float(adjusted.sum()), 1e-8)
+
+    return probabilities
+
+
+def reconcile_species_with_clip(
+    probabilities: np.ndarray,
+    ood_metrics: dict[str, object],
+) -> np.ndarray:
+    """Correct orange-tinted apples (e.g. Fuji/Gala/Honeycrisp) misclassified as orange by the CNN.
+
+    Preserves the CNN's fresh-vs-rotten prediction while transferring orange probability mass to apple
+    only when MobileCLIP2-S0 strongly prefers apple over orange (+0.030 margin, verified 0/120 false flips
+    on real internal & Mendeley oranges).
+    """
+    top_idx = int(np.argmax(probabilities))
+    if top_idx not in (4, 5):  # Only intervene when CNN predicts fresh_orange (4) or rotten_orange (5)
+        return probabilities
+
+    apple_sim = ood_metrics.get("clip_apple_sim")
+    orange_sim = ood_metrics.get("clip_orange_sim")
+    banana_sim = ood_metrics.get("clip_banana_sim", -1.0)
+    if apple_sim is None or orange_sim is None:
+        return probabilities
+
+    if (float(apple_sim) - float(orange_sim)) >= CLIP_APPLE_OVER_ORANGE_MARGIN and float(apple_sim) > float(banana_sim):
+        adjusted = probabilities.copy()
+        adjusted[0] = probabilities[0] + probabilities[4]
+        adjusted[1] = probabilities[1] + probabilities[5]
+        adjusted[4] = min(0.01, float(probabilities[0]))
+        adjusted[5] = min(0.01, float(probabilities[1]))
         return adjusted / max(float(adjusted.sum()), 1e-8)
 
     return probabilities

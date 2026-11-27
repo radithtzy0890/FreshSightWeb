@@ -16,6 +16,7 @@ from .explain import (
     human_region,
     overlay_heatmap,
     png_base64,
+    reconcile_species_with_clip,
 )
 from .models import inference_lock, run_gradcam, state, tta_probabilities
 from .ood import evaluate_dual_ood
@@ -87,6 +88,9 @@ def run_inference(pil_image: Image.Image) -> dict[str, object]:
             calibrated = calibrate_low_confidence_with_defects(probabilities, features)
             if not np.allclose(calibrated, probabilities):
                 probabilities = calibrated
+            reconciled = reconcile_species_with_clip(probabilities, ood_metrics)
+            if not np.allclose(reconciled, probabilities):
+                probabilities = reconciled
 
         new_class_idx = int(np.argmax(probabilities))
         if new_class_idx != class_idx:

@@ -119,6 +119,12 @@ def evaluate_dual_ood(
         metrics["clip_other"] = best_nt_label
         metrics["clip_margin"] = round(margin, 4)
 
+        labels_arr = clip_prompts["labels"]
+        for key_en, key_id in (("apple", "apel"), ("banana", "pisang"), ("orange", "jeruk")):
+            sp_mask = labels_arr == key_id
+            if np.any(sp_mask):
+                metrics[f"clip_{key_en}_sim"] = round(float(np.max(sims[sp_mask])), 4)
+
         if margin < OOD_CLIP_HARD_MARGIN:
             return (
                 True,

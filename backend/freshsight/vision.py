@@ -161,63 +161,95 @@ def fruit_mask(bgr: np.ndarray) -> np.ndarray:
 
 
 def suppress_fruit_sticker(bgr: np.ndarray) -> tuple[np.ndarray, bool]:
-    """Detect and inpaint compact non-biological blue/violet supermarket PLU stickers on fruit skin.
+    """Detect and inpaint compact supermarket PLU / barcode stickers on fruit skin.
 
-    Triggers ONLY when a compact vivid blue/indigo/violet core (H in [100, 148], S > 85)
-    lies inside the fruit region, avoiding any interference with green/white Penicillium mold.
+    Handles both:
+    1) High-contrast white-paper + dark-ink barcode/text PLU stickers (any border color),
+       distinguished from fuzzy mold and specular highlights by compact solidity and
+       razor-sharp printed edge gradients (Sobel p90 >= 200, sharp-edge ratio >= 0.24).
+    2) Vivid non-biological blue/indigo/violet PLU stickers with printed text/barcode detail.
     """
     h_img, w_img = bgr.shape[:2]
     img_area = float(h_img * w_img)
     hsv = cv2.cvtColor(bgr, cv2.COLOR_BGR2HSV)
     hue, sat, val = hsv[..., 0], hsv[..., 1], hsv[..., 2]
+    gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
 
-    blue_core = ((hue >= 100) & (hue <= 148) & (sat > 85) & (val > 45)).astype(np.uint8) * 255
-    if int(np.count_nonzero(blue_core)) < int(0.0015 * img_area):
-        return bgr, False
-
+    # Restrict strictly to the fruit interior so white studio backgrounds never leak in
     fmask = fruit_mask(bgr)
+    inner = cv2.erode(fmask.astype(np.uint8) * 255, np.ones((5, 5), np.uint8), iterations=1) > 0
     border_ok = np.ones((h_img, w_img), dtype=bool)
     margin = max(4, int(0.03 * min(h_img, w_img)))
     border_ok[:margin, :] = False
     border_ok[-margin:, :] = False
     border_ok[:, :margin] = False
     border_ok[:, -margin:] = False
+    inner = inner & border_ok
 
-    seed = ((blue_core > 0) & fmask & border_ok).astype(np.uint8) * 255
-    seed = cv2.morphologyEx(seed, cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8), iterations=1)
-    contours, _ = cv2.findContours(seed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    white_paper = (sat < 52) & (val > 175) & inner
+    dark_ink = (sat < 85) & (val < 115) & inner
+    blue_ink = (hue >= 98) & (hue <= 150) & (sat > 75) & (val > 40) & inner
+
+    if int(np.count_nonzero(white_paper)) + int(np.count_nonzero(blue_ink)) < int(0.0015 * img_area):
+        return bgr, False
+
+    gx = cv2.Sobel(gray, cv2.CV_32F, 1, 0, ksize=3)
+    gy = cv2.Sobel(gray, cv2.CV_32F, 0, 1, ksize=3)
+    grad = np.sqrt(gx * gx + gy * gy)
+
+    cand_raw = (white_paper | dark_ink | blue_ink).astype(np.uint8) * 255
+    cand_closed = cv2.morphologyEx(cand_raw, cv2.MORPH_CLOSE, np.ones((7, 7), np.uint8), iterations=2)
+    cand_closed = cv2.morphologyEx(cand_closed, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8), iterations=1)
+    contours, _ = cv2.findContours(cand_closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     sticker_mask = np.zeros((h_img, w_img), dtype=np.uint8)
     for cnt in contours:
         area = cv2.contourArea(cnt)
-        if area < 0.0015 * img_area or area > 0.10 * img_area:
+        area_ratio = area / img_area
+        if area_ratio < 0.0025 or area_ratio > 0.14:
             continue
-        x, y, bw, bh = cv2.boundingRect(cnt)
-        pad = max(8, int(0.45 * max(bw, bh)))
-        x1, y1 = max(0, x - pad), max(0, y - pad)
-        x2, y2 = min(w_img, x + bw + pad), min(h_img, y + bh + pad)
-        roi_h = hue[y1:y2, x1:x2]
-        roi_s = sat[y1:y2, x1:x2]
-        roi_v = val[y1:y2, x1:x2]
-        roi_sticker = (
-            ((roi_h >= 96) & (roi_h <= 152) & (roi_s > 50))
-            | ((roi_s < 55) & (roi_v > 150))
-            | ((roi_s < 65) & (roi_v < 120))
+        _, _, bw, bh = cv2.boundingRect(cnt)
+        aspect = bw / max(bh, 1)
+        hull_area = cv2.contourArea(cv2.convexHull(cnt))
+        solidity = area / max(hull_area, 1.0)
+
+        blob_u8 = np.zeros((h_img, w_img), dtype=np.uint8)
+        cv2.drawContours(blob_u8, [cnt], -1, 255, -1)
+        blob = blob_u8 > 0
+        n_pix = max(int(blob.sum()), 1)
+
+        w_frac = float((white_paper & blob).sum()) / n_pix
+        d_frac = float((dark_ink & blob).sum()) / n_pix
+        b_frac = float((blue_ink & blob).sum()) / n_pix
+        sharp_edge_frac = float(((grad > 120.0) & blob).sum()) / n_pix
+        mean_grad = float(grad[blob].mean())
+        p90_grad = float(np.percentile(grad[blob], 90))
+
+        is_barcode_sticker = (
+            (0.35 <= aspect <= 2.8)
+            and solidity >= 0.70
+            and w_frac >= 0.16
+            and (d_frac >= 0.07 or b_frac >= 0.04)
+            and sharp_edge_frac >= 0.24
+            and mean_grad >= 100.0
+            and p90_grad >= 200.0
         )
-        roi_u8 = roi_sticker.astype(np.uint8) * 255
-        roi_u8 = cv2.morphologyEx(roi_u8, cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8), iterations=2)
-        n_cc, cc_labels, cc_stats, _ = cv2.connectedComponentsWithStats(roi_u8, 8)
-        core_in_roi = seed[y1:y2, x1:x2] > 0
-        for cid in range(1, n_cc):
-            cc_mask = cc_labels == cid
-            if np.any(cc_mask & core_in_roi) and cc_stats[cid, cv2.CC_STAT_AREA] <= 0.14 * img_area:
-                sticker_mask[y1:y2, x1:x2][cc_mask] = 255
+        is_blue_sticker = (
+            (0.30 <= aspect <= 3.2)
+            and solidity >= 0.65
+            and b_frac >= 0.15
+            and area_ratio <= 0.10
+            and sharp_edge_frac >= 0.22
+            and p90_grad >= 190.0
+        )
+        if is_barcode_sticker or is_blue_sticker:
+            sticker_mask[blob] = 255
 
     if int(np.count_nonzero(sticker_mask)) == 0:
         return bgr, False
 
-    sticker_mask = cv2.dilate(sticker_mask, np.ones((5, 5), np.uint8), iterations=1)
-    cleaned = cv2.inpaint(bgr, sticker_mask, 5, cv2.INPAINT_TELEA)
+    sticker_mask = cv2.dilate(sticker_mask, np.ones((7, 7), np.uint8), iterations=1)
+    cleaned = cv2.inpaint(bgr, sticker_mask, 6, cv2.INPAINT_TELEA)
     return cleaned, True
 
 
