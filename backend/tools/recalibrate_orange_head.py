@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import random
 import sys
 from pathlib import Path
@@ -13,8 +14,13 @@ import pandas as pd
 from PIL import Image
 from sklearn.metrics import accuracy_score, classification_report, f1_score
 
-ROOT = Path(r"C:\Users\anand\OneDrive\Documents\Semester 5\Pemrosesan CItra\PJBL\Citra + Viskom")
 BASE = Path(__file__).resolve().parents[1]
+ROOT = Path(
+    os.environ.get(
+        "FRESHSIGHT_DATASET_ROOT",
+        BASE.parent / "dataset",
+    )
+)
 MODEL_PATH = BASE / "models" / "mobilenetv3small_external_recalibrated.keras"
 OUTPUT_PATH = BASE / "models" / "mobilenetv3small_external_green_v2.keras"
 MANIFEST = ROOT / "reports_v2" / "02b_clean_split_manifest.csv"

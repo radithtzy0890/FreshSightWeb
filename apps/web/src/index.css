@@ -1,9 +1,7 @@
 @import 'tailwindcss';
-@import 'lenis/dist/lenis.css';
 
 /* ============================================================
-   DESIGN SYSTEM: FreshSight × Planet Oño (Exact Reference)
-   Curated, Ultra-Clean, Zero AI Slop, Storytelling Minimal
+   FreshSight Design Tokens & Base Styles
    ============================================================ */
 
 @font-face {
@@ -15,22 +13,23 @@
 }
 
 :root {
-  --color-yellow: #FFC737;
-  --color-green-primary: #1E6B3E;
-  --color-green-deep: #14532D;
-  --color-green-dark: #0A2E19;
-  --color-neon-lime: #8DF947;
-  --color-cream: #F7F2E5;
-  --color-black: #000000;
+  --fs-bg-hero: #FFC737;
+  --fs-green-primary: #1E6B3E;
+  --fs-green-deep: #14532D;
+  --fs-green-dark: #0A2E19;
+  --fs-accent: #8DF947;
+  --fs-accent-hover: #A3FF6B;
+  --fs-surface: #F7F2E5;
+  --fs-danger: #B91C1C;
+  --fs-ink: #000000;
 }
 
 *, *::before, *::after {
   box-sizing: border-box;
 }
 
-/* ── UI-UX-PRO-MAX Accessible Focus & Motion ── */
 :focus-visible {
-  outline: 3px solid #000000 !important;
+  outline: 3px solid var(--fs-ink) !important;
   outline-offset: 3px !important;
 }
 
@@ -43,250 +42,45 @@
 }
 
 html {
-  background-color: var(--color-yellow);
-  color: #000000;
+  background-color: var(--fs-bg-hero);
+  color: var(--fs-ink);
   scroll-padding-top: 80px;
 }
 
 body {
   font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
-  background-color: var(--color-yellow);
-  color: #000000;
+  background-color: var(--fs-bg-hero);
+  color: var(--fs-ink);
   min-height: 100vh;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 }
 
-/* ── Typography Classes ── */
 .font-passata {
   font-family: 'Futura Passata', system-ui, sans-serif;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.03em;
 }
 
 .font-mono-tech {
   font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
-/* ── 3D Text Stroke & Shadows (Exact Planet Oño Style) ── */
 .text-shadow-3d-white {
   color: #FFFFFF;
-  text-shadow: 
+  text-shadow:
     3px 3px 0 #000000,
     -1px -1px 0 #000000,
     1px -1px 0 #000000,
     -1px 1px 0 #000000,
     1px 1px 0 #000000,
     0 4px 0 #000000;
-  letter-spacing: -0.04em;
-}
-
-.text-shadow-3d-black {
-  color: #000000;
-  letter-spacing: -0.05em;
-  line-height: 0.95;
-}
-
-/* ── Comic Blast Sticker Badge (Image 1 Left) ── */
-.sticker-blast {
-  position: relative;
-  background: #FFFFFF;
-  border: 3px solid #000000;
-  border-radius: 20px;
-  box-shadow: 4px 4px 0 #000000;
-  padding: 16px 20px;
-  text-align: center;
-  transform: rotate(-6deg);
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
-  animation: ono-badge-pulse 4.2s ease-in-out infinite;
-}
-.sticker-blast:hover {
-  transform: rotate(-3deg) scale(1.06);
-  box-shadow: 6px 6px 0 #000000;
-  animation-play-state: paused;
-}
-
-/* ── Planet Oño Authentic Floating & Twinkle Animations ── */
-@keyframes ono-float {
-  0%, 100% {
-    transform: translateY(0px) rotate(0deg);
-  }
-  50% {
-    transform: translateY(-10px) rotate(0.8deg);
-  }
-}
-
-@keyframes ono-badge-pulse {
-  0%, 100% {
-    transform: rotate(-6deg) scale(1);
-  }
-  50% {
-    transform: rotate(-4.5deg) scale(1.025);
-  }
-}
-
-@keyframes ono-twinkle {
-  0%, 100% {
-    transform: scale(0.9) rotate(0deg);
-    opacity: 0.7;
-  }
-  50% {
-    transform: scale(1.22) rotate(18deg);
-    opacity: 1;
-  }
-}
-
-@keyframes fruit-bob {
-  0%, 100% {
-    transform: translateY(0px) scale(1);
-  }
-  50% {
-    transform: translateY(-6px) scale(1.03);
-  }
-}
-
-.animate-ono-float {
-  animation: ono-float 4.2s ease-in-out infinite;
-}
-
-.animate-ono-twinkle {
-  animation: ono-twinkle 2.4s ease-in-out infinite;
-}
-
-.animate-ono-twinkle-delay-1 {
-  animation: ono-twinkle 2.8s ease-in-out 0.9s infinite;
-}
-
-.animate-ono-twinkle-delay-2 {
-  animation: ono-twinkle 3.2s ease-in-out 1.7s infinite;
-}
-
-.animate-fruit-bob {
-  animation: fruit-bob 3.2s ease-in-out infinite;
-}
-
-/* ── Dynamic Ambient Color Aura (Planet Oño Shifting Palette) ── */
-@keyframes aura-float {
-  0%, 100% {
-    transform: translate(-50%, -50%) scale(1) rotate(0deg);
-    opacity: 0.55;
-  }
-  33% {
-    transform: translate(-45%, -52%) scale(1.15) rotate(120deg);
-    opacity: 0.75;
-  }
-  66% {
-    transform: translate(-55%, -48%) scale(0.92) rotate(240deg);
-    opacity: 0.6;
-  }
-}
-
-.animate-aura-float {
-  animation: aura-float 14s ease-in-out infinite;
-}
-
-/* ── Interactive Fruit Floating Physics & 3D Bobbing ── */
-@keyframes fruit-float-breathe {
-  0%, 100% {
-    transform: translateY(0px) rotate(0deg) scale(1);
-  }
-  25% {
-    transform: translateY(-8px) rotate(-1.5deg) scale(1.02);
-  }
-  50% {
-    transform: translateY(-3px) rotate(0.8deg) scale(1.01);
-  }
-  75% {
-    transform: translateY(-11px) rotate(1.8deg) scale(1.03);
-  }
-}
-
-.animate-fruit-float-breathe {
-  animation: fruit-float-breathe 4.5s ease-in-out infinite;
-}
-
-@keyframes shadow-breathe {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 0.35;
-  }
-  50% {
-    transform: scale(0.82);
-    opacity: 0.18;
-  }
-}
-
-.animate-shadow-breathe {
-  animation: shadow-breathe 4.5s ease-in-out infinite;
-}
-
-@keyframes orbit-float {
-  0%, 100% {
-    transform: translateY(0px) rotate(0deg);
-  }
-  50% {
-    transform: translateY(-7px) rotate(6deg);
-  }
-}
-
-.animate-orbit-float {
-  animation: orbit-float 3.6s ease-in-out infinite;
-}
-
-/* ── Planet Oño Rotating Circular Badge & Orbit Animations ── */
-@keyframes ono-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes ono-spin-reverse {
-  from {
-    transform: rotate(360deg);
-  }
-  to {
-    transform: rotate(-360deg);
-  }
-}
-
-.animate-ono-spin-slow {
-  animation: ono-spin 14s linear infinite;
-}
-
-.animate-ono-spin-reverse {
-  animation: ono-spin-reverse 18s linear infinite;
-}
-
-.animate-ono-spin-fast {
-  animation: ono-spin 6s linear infinite;
-}
-
-/* ── AI Laser Sweep & Specimen Pop Animations ── */
-@keyframes laser-sweep {
-  0% {
-    top: 8%;
-    opacity: 0.7;
-  }
-  50% {
-    top: 88%;
-    opacity: 1;
-  }
-  100% {
-    top: 8%;
-    opacity: 0.7;
-  }
-}
-
-.animate-laser-sweep {
-  animation: laser-sweep 2.2s ease-in-out infinite;
+  letter-spacing: -0.03em;
 }
 
 @keyframes specimen-pop {
   0% {
     opacity: 0;
-    transform: scale(0.9) translateY(6px);
+    transform: scale(0.96) translateY(4px);
   }
   100% {
     opacity: 1;
@@ -295,103 +89,66 @@ body {
 }
 
 .animate-specimen-pop {
-  animation: specimen-pop 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: specimen-pop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* ── Interactive Card Hover Lift (Planet Oño Tactile 3D) ── */
-.interactive-card {
-  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease;
-}
-.interactive-card:hover {
-  transform: translateY(-4px) scale(1.01);
-  box-shadow: 8px 8px 0 #000000;
-}
-
-/* ── Tactile Slider Buttons (Image 1 Bottom Right) ── */
 .btn-slider-square {
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
   background: #FFFFFF;
-  border: 3px solid #000000;
-  box-shadow: 3px 3px 0 #000000;
-  display: flex;
+  border: 2px solid var(--fs-ink);
+  box-shadow: 3px 3px 0 var(--fs-ink);
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
   font-weight: bold;
   cursor: pointer;
   transition: transform 0.1s ease, box-shadow 0.1s ease;
   user-select: none;
 }
+
 .btn-slider-square:hover {
-  background: var(--color-cream);
+  background: var(--fs-surface);
   transform: translate(-1px, -1px);
-  box-shadow: 4px 4px 0 #000000;
-}
-.btn-slider-square:active {
-  transform: translate(2px, 2px);
-  box-shadow: 1px 1px 0 #000000;
+  box-shadow: 4px 4px 0 var(--fs-ink);
 }
 
-/* ── Horizontal Pill Progress Bar (Image 1) ── */
+.btn-slider-square:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--fs-ink);
+}
+
 .slider-pill-track {
   height: 12px;
   width: 140px;
-  background: rgba(0, 0, 0, 0.2);
-  border: 2px solid #000000;
+  background: rgba(0, 0, 0, 0.18);
+  border: 2px solid var(--fs-ink);
   border-radius: 9999px;
   position: relative;
   display: flex;
   align-items: center;
   padding: 0 4px;
 }
+
 .slider-pill-bar {
   height: 6px;
-  background: #000000;
+  background: var(--fs-ink);
   border-radius: 9999px;
-  transition: all 0.3s ease;
-}
-
-/* ── Step Buttons (Image 2 Bottom: [ 1 ] [ 2 ] [ 3 ] [ 4 ] [ Claim your toy ]) ── */
-.btn-step-ono {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  background: var(--color-cream);
-  color: #000000;
-  font-family: 'Futura Passata', sans-serif;
-  font-size: 20px;
-  font-weight: bold;
-  border: 3px solid #000000;
-  box-shadow: 3px 3px 0 #000000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
-}
-.btn-step-ono:hover, .btn-step-ono.is-active {
-  background: var(--color-neon-lime);
-  transform: translate(-1px, -1px);
-  box-shadow: 4px 4px 0 #000000;
-}
-.btn-step-ono:active {
-  transform: translate(2px, 2px);
-  box-shadow: 1px 1px 0 #000000;
+  transition: width 0.25s ease;
 }
 
 .btn-action-wide-ono {
-  height: 48px;
+  min-height: 48px;
   padding: 0 24px;
   border-radius: 14px;
-  background: var(--color-cream);
-  color: #000000;
+  background: var(--fs-surface);
+  color: var(--fs-ink);
   font-family: 'Futura Passata', sans-serif;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: bold;
-  border: 3px solid #000000;
-  box-shadow: 3px 3px 0 #000000;
+  border: 2px solid var(--fs-ink);
+  box-shadow: 3px 3px 0 var(--fs-ink);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -399,52 +156,14 @@ body {
   cursor: pointer;
   transition: transform 0.1s ease, box-shadow 0.1s ease;
 }
+
 .btn-action-wide-ono:hover {
   background: #FFFFFF;
   transform: translate(-1px, -1px);
-  box-shadow: 4px 4px 0 #000000;
+  box-shadow: 4px 4px 0 var(--fs-ink);
 }
+
 .btn-action-wide-ono:active {
   transform: translate(2px, 2px);
-  box-shadow: 1px 1px 0 #000000;
-}
-
-/* ── Infinite Smooth Running Reel / Marquee ── */
-@keyframes fs-marquee {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-
-.marquee-container {
-  overflow: hidden;
-  position: relative;
-  width: 100%;
-  mask-image: linear-gradient(to right, transparent, black 3%, black 97%, transparent);
-  -webkit-mask-image: linear-gradient(to right, transparent, black 3%, black 97%, transparent);
-}
-
-.marquee-track {
-  display: flex;
-  gap: 1.25rem;
-  width: max-content;
-  animation: fs-marquee 32s linear infinite;
-  will-change: transform;
-}
-
-.marquee-track:hover,
-.marquee-track:active,
-.marquee-track:focus-within {
-  animation-play-state: paused;
-}
-
-/* ── Circular Celestial / Radar Charts (Image 4) ── */
-.circular-star-chart {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  border: 3px solid #000000;
-  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.15) 0%, rgba(0, 0, 0, 0.35) 100%), #14532D;
-  overflow: hidden;
-  box-shadow: 6px 6px 0 #000000;
+  box-shadow: 1px 1px 0 var(--fs-ink);
 }

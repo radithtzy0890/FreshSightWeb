@@ -10,41 +10,37 @@ export const Footer: React.FC = () => {
   };
 
   return (
-    <footer className="py-24 bg-[#0A2E19] text-center text-white relative border-t-2 border-black flex flex-col items-center justify-center space-y-6">
-
+    <footer className="py-16 bg-[var(--fs-green-dark)] text-center text-white relative border-t-2 border-black flex flex-col items-center justify-center space-y-5 px-6">
       <Link
         to="/"
         onClick={() => sound.play('swoosh')}
-        className="w-16 h-16 rounded-full bg-white text-black flex items-center justify-center border-3 border-black shadow-[4px_4px_0_#000000] text-3xl font-bold hover:scale-105 transition-transform cursor-pointer"
-        aria-label="Back to home"
+        className="w-14 h-14 rounded-full bg-white text-black flex items-center justify-center border-2 border-black shadow-[4px_4px_0_#000] text-2xl font-bold hover:scale-105 transition-transform cursor-pointer"
+        aria-label="Kembali ke beranda"
       >
         🌿
       </Link>
 
-      <div className="space-y-1.5 max-w-xl mx-auto px-6">
+      <div className="space-y-2 max-w-xl mx-auto">
         <p className="font-passata text-xl sm:text-2xl uppercase tracking-tight text-white leading-snug">
-          KAMI MENOLAK TEBAK-TEBAKAN. ANALISIS MUTU BUAH BERKATA JUJUR.
+          FreshSight — Pemeriksaan Visual Kesegaran Buah
         </p>
-        <p className="font-passata text-lg sm:text-xl uppercase tracking-tight text-white/90">
-          TEKNOLOGI BIO-OPTIK DETEKSI KESEGARAN BUAH DIGITAL
-        </p>
-        <p className="font-passata text-lg sm:text-xl uppercase tracking-tight text-[#8DF947]">
-          OLEH FRESHSIGHT 🍏
+        <p className="text-xs sm:text-sm text-white/85 leading-relaxed">
+          Mendukung apel, pisang, dan jeruk utuh. Penilaian didasarkan pada tampilan visual kulit buah dan bukan pengganti uji keamanan pangan. Foto diproses untuk inferensi tanpa disimpan permanen di server; riwayat hanya tersimpan di perangkat Anda.
         </p>
       </div>
 
-      <p className="font-mono-tech text-xs text-white/60 pt-4">
-        © 2026
+      <p className="font-mono-tech text-xs text-white/75 pt-2">
+        © 2026 FreshSight
       </p>
 
       <button
+        type="button"
         onClick={scrollToTop}
-        className="mt-4 p-2.5 rounded-xl bg-white/20 hover:bg-[#8DF947] hover:text-black transition-colors cursor-pointer"
-        aria-label="Scroll to top"
+        className="min-w-11 min-h-11 flex items-center justify-center rounded-xl bg-white/20 hover:bg-[var(--fs-accent)] hover:text-black transition-colors cursor-pointer"
+        aria-label="Kembali ke bagian atas halaman"
       >
-        <ArrowUp size={16} strokeWidth={2.5} />
+        <ArrowUp size={18} strokeWidth={2.5} />
       </button>
-
     </footer>
   );
 };

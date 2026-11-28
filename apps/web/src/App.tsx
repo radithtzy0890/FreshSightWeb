@@ -1,7 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import Lenis from 'lenis';
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
 import { Navbar } from './components/Navbar';
@@ -12,8 +9,6 @@ import { ModelDataPage } from './components/ModelDataPage';
 import { Footer } from './components/Footer';
 import { AnalysisResult, DemoPreset } from './types';
 import { loadImageElement } from './services/cvEngine';
-
-gsap.registerPlugin(ScrollTrigger);
 
 const DEMO_PRESETS: DemoPreset[] = [
   ['apple',  0, 0.992, 1,  0, '–',            8.2,  0.09],
@@ -30,10 +25,19 @@ interface ToastItem {
   type: 'default' | 'success' | 'error';
 }
 
-const TOAST_ICONS = {
-  success: <CheckCircle2 size={16} className="text-[#00FF87]" />,
-  error:   <AlertCircle size={16} className="text-[#FF4D6D]" />,
-  default: <Info size={16} className="text-[#00FF87]" />,
+const TOAST_STYLE = {
+  success: {
+    box: 'bg-[var(--fs-surface)] text-black border-2 border-black shadow-[4px_4px_0_#000]',
+    icon: <CheckCircle2 size={18} className="text-[#14532D]" />,
+  },
+  error: {
+    box: 'bg-[#FEE2E2] text-[#7F1D1D] border-2 border-[#7F1D1D] shadow-[4px_4px_0_#7F1D1D]',
+    icon: <AlertCircle size={18} className="text-[#991B1B]" />,
+  },
+  default: {
+    box: 'bg-[var(--fs-surface)] text-black border-2 border-black shadow-[4px_4px_0_#000]',
+    icon: <Info size={18} className="text-[#1E6B3E]" />,
+  },
 };
 
 function persistHistory(items: AnalysisResult[]): void {
@@ -85,54 +89,28 @@ export const App: React.FC = () => {
   const [currentResult, setCurrentResult] = useState<AnalysisResult | null>(null);
   const [history, setHistory] = useState<AnalysisResult[]>(getInitialHistory);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
-  const lenisRef = useRef<Lenis | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
 
-  const showToast = useCallback((message: string, type: 'default' | 'success' | 'error' = 'default') => {
-    const id = Date.now() + Math.random();
-    setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 3500);
-  }, []);
+  const showToast = useCallback(
+    (message: string, type: 'default' | 'success' | 'error' = 'default') => {
+      const id = Date.now() + Math.random();
+      setToasts((prev) => [...prev.slice(-2), { id, message, type }]);
+      const durationMs = type === 'error' ? 8000 : 4000;
+      setTimeout(() => {
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+      }, durationMs);
+    },
+    []
+  );
 
   useEffect(() => {
-    const lenis = new Lenis({
-      duration: 1.15,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      orientation: 'vertical',
-      smoothWheel: true,
-      wheelMultiplier: 0.95,
-      touchMultiplier: 1.8,
-    });
-    lenisRef.current = lenis;
-
-    lenis.on('scroll', ScrollTrigger.update);
-    gsap.ticker.add((time) => { lenis.raf(time * 1000); });
-    gsap.ticker.lagSmoothing(0);
-
-    if (!CSS.supports('animation-timeline', 'scroll()')) {
-      const bar = document.getElementById('scroll-progress');
-      if (bar) {
-        lenis.on('scroll', ({ progress }: { progress: number }) => {
-          bar.style.transform = `scaleX(${progress})`;
-        });
-      }
-    }
-
-    return () => lenis.destroy();
-  }, []);
-
-  useEffect(() => {
-    const lenis = lenisRef.current;
-    if (lenis) {
-      lenis.resize();
-      lenis.scrollTo(0, { immediate: true });
-    } else {
-      window.scrollTo(0, 0);
-    }
+    window.scrollTo({ top: 0, behavior: 'auto' });
   }, [location.pathname]);
+
+  const handleClearResult = useCallback(() => {
+    setCurrentResult(null);
+  }, []);
 
   const handleAnalysisComplete = useCallback(async (res: AnalysisResult) => {
     setCurrentResult(res);
@@ -165,7 +143,6 @@ export const App: React.FC = () => {
 
   const handleSelectHistoryDetail = (item: AnalysisResult) => {
     setCurrentResult(item);
-    showToast(`Spesimen ${item.fruit} berhasil dipasang pada lensa diagnosis.`, 'default');
   };
 
   const handleDeleteHistoryItem = (id: number) => {
@@ -174,7 +151,8 @@ export const App: React.FC = () => {
       persistHistory(updated);
       return updated;
     });
-    showToast('Spesimen dihapus dari arsip.');
+    setCurrentResult((prev) => (prev && prev.id === id ? null : prev));
+    showToast('Item dihapus dari riwayat.');
   };
 
   const handleUpdateHistoryItem = (updatedItem: AnalysisResult) => {
@@ -184,14 +162,14 @@ export const App: React.FC = () => {
       return updated;
     });
     setCurrentResult((prev) => (prev && prev.id === updatedItem.id ? updatedItem : prev));
-    showToast('Umpan balik spesimen berhasil disimpan ke arsip.', 'success');
+    showToast('Umpan balik tersimpan di riwayat lokal.', 'success');
   };
 
   const handleClearHistory = () => {
-    if (window.confirm('Kosongkan seluruh arsip spesimen pada perangkat ini?')) {
+    if (window.confirm('Hapus seluruh riwayat pemeriksaan pada perangkat ini?')) {
       setHistory([]);
       persistHistory([]);
-      showToast('Seluruh arsip spesimen berhasil dikosongkan.');
+      showToast('Seluruh riwayat berhasil dikosongkan.');
     }
   };
 
@@ -206,6 +184,8 @@ export const App: React.FC = () => {
             element={
               <Hero
                 onAnalysisComplete={handleAnalysisComplete}
+                onClearResult={handleClearResult}
+                onUpdateResult={handleUpdateHistoryItem}
                 showToast={showToast}
                 presets={DEMO_PRESETS}
                 result={currentResult}
@@ -237,26 +217,31 @@ export const App: React.FC = () => {
       <Footer />
 
       <div
-        className="fixed bottom-6 right-4 sm:right-8 z-[9999] flex flex-col gap-2 pointer-events-none"
+        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[9999] flex flex-col gap-2 max-w-sm w-[calc(100vw-2rem)] pointer-events-none"
         aria-live="polite"
-        aria-label="Notifikasi Studio"
+        aria-label="Notifikasi aplikasi"
       >
-        {toasts.map((toast) => (
-          <div
-            key={toast.id}
-            className="pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-2xl bg-[#09170E] text-[#F3FDF6] border border-[#00FF87]/30 shadow-[0_0_25px_rgba(0,255,135,0.25)] text-xs font-mono-tech"
-          >
-            <span className="shrink-0">{TOAST_ICONS[toast.type]}</span>
-            <span className="flex-1">{toast.message}</span>
-            <button
-              onClick={() => setToasts((p) => p.filter((t) => t.id !== toast.id))}
-              className="text-[#5D796A] hover:text-[#00FF87] transition-colors"
-              aria-label="Tutup notifikasi"
+        {toasts.map((toast) => {
+          const style = TOAST_STYLE[toast.type];
+          return (
+            <div
+              key={toast.id}
+              role={toast.type === 'error' ? 'alert' : 'status'}
+              className={`pointer-events-auto flex items-start gap-3 px-4 py-3 rounded-2xl text-xs font-semibold leading-snug ${style.box}`}
             >
-              <X size={14} />
-            </button>
-          </div>
-        ))}
+              <span className="shrink-0 mt-0.5">{style.icon}</span>
+              <span className="flex-1">{toast.message}</span>
+              <button
+                type="button"
+                onClick={() => setToasts((p) => p.filter((t) => t.id !== toast.id))}
+                className="shrink-0 min-w-8 min-h-8 -m-1.5 flex items-center justify-center rounded-lg hover:bg-black/10 transition-colors cursor-pointer"
+                aria-label="Tutup notifikasi"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          );
+        })}
       </div>
     </>
   );

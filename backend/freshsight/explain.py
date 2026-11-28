@@ -114,6 +114,7 @@ def build_explanation(
     focus: str,
     is_ood: bool = False,
     ood_reason: str = "",
+    quality: dict[str, object] | None = None,
 ) -> str:
     if is_ood:
         detail = f" ({ood_reason})." if ood_reason else "."
@@ -158,19 +159,22 @@ def build_explanation(
         if reasons:
             text = (
                 f"{FRUIT_NAMES[fruit]} ini dinilai segar (keyakinan {confidence_text}%), "
-                f"tetapi ada tanda-tanda awal: " + "; ".join(reasons) + "."
+                f"dengan catatan visual permukaan (estimasi terpisah): " + "; ".join(reasons) + "."
             )
         else:
             text = (
                 f"{FRUIT_NAMES[fruit]} ini dinilai segar (keyakinan {confidence_text}%). "
-                f"Warna kulitnya masih homogen, permukaannya tidak terlalu kasar, dan hampir "
-                f"tidak ada bercak gelap."
+                f"Warna kulit tampak homogen, permukaan relatif halus, dan hampir tidak ditemukan bercak gelap."
             )
     else:
         if not reasons:
-            reasons = [f"warna dan permukaannya sudah menyimpang dari {FRUIT_NAMES[fruit].lower()} segar"]
+            reasons = [f"pola warna dan permukaannya menyimpang dari {FRUIT_NAMES[fruit].lower()} segar"]
         text = (
             f"{FRUIT_NAMES[fruit]} ini dinilai tidak segar (keyakinan {confidence_text}%). "
-            f"Alasan: " + "; ".join(reasons) + "."
+            f"Indikasi visual permukaan (estimasi terpisah): " + "; ".join(reasons) + "."
         )
-    return text + f" Bagian yang paling diperhatikan saat penilaian ada di {focus}."
+    text += f" Area yang paling diperhatikan model ada di {focus}."
+    quality_warnings = quality.get("warnings") if isinstance(quality, dict) else None
+    if quality_warnings:
+        text += " Catatan kualitas foto: " + " ".join(str(w) for w in quality_warnings)
+    return text

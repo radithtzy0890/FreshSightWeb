@@ -1,15 +1,9 @@
-import { AnalysisResult, FruitType, DemoPreset, Verdict, getVerdict } from '../types';
+import { AnalysisResult, DemoPreset, FruitType, Verdict, getVerdict } from '../types';
 
 export const FRUIT_NAMES: Record<FruitType, string> = {
   apple: 'Apel',
   banana: 'Pisang',
   orange: 'Jeruk',
-};
-
-export const DEFECT_DESCRIPTIONS: Record<FruitType, string> = {
-  apple: 'bercak cokelat nekrotik dan dehidrasi kutikula epidermis',
-  banana: 'hiperpigmentasi melanin pekat dan pelunakan jaringan buah',
-  orange: 'degradasi kulit, bintik kapang, atau koloni jamur permukaan',
 };
 
 export const MODEL_LABELS = [
@@ -19,25 +13,24 @@ export const MODEL_LABELS = [
   'rotten_banana',
   'fresh_orange',
   'rotten_orange',
-];
+] as const;
+
+export const LABEL_NAMES_ID: Record<string, string> = {
+  fresh_apple: 'Apel Segar',
+  rotten_apple: 'Apel Busuk',
+  fresh_banana: 'Pisang Segar',
+  rotten_banana: 'Pisang Busuk',
+  fresh_orange: 'Jeruk Segar',
+  rotten_orange: 'Jeruk Busuk',
+};
 
 export const FRUIT_KEYS: FruitType[] = ['apple', 'banana', 'orange'];
-
-export const clampNum = (val: number, min: number, max: number): number =>
-  Math.max(min, Math.min(max, val));
 
 export const formatPercent = (val: number): string =>
   (val * 100).toFixed(1).replace('.', ',') + '%';
 
-export const formatNumber = (val: number, decimals = 2): string =>
-  val.toFixed(decimals).replace('.', ',');
-
-export const getTodayString = (): string =>
-  new Date().toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
+export const formatLabelId = (label: string): string =>
+  LABEL_NAMES_ID[label] || label.replace('_', ' ');
 
 export const resolveVerdict = (res: AnalysisResult): Verdict => {
   if (res.verdict === 'tidak_terdeteksi' || res.isOod || res.fruitCount === 0) {
@@ -49,13 +42,48 @@ export const resolveVerdict = (res: AnalysisResult): Verdict => {
   return res.verdict ?? getVerdict(res.conf, res.rot, res.isOod, res.fruitCount);
 };
 
+export const getVerdictMeta = (
+  verdict: Verdict
+): { label: string; badgeText: string; badgeClass: string; softBadgeClass: string } => {
+  if (verdict === 'segar') {
+    return {
+      label: 'Segar',
+      badgeText: '✓ Segar',
+      badgeClass: 'bg-[#8DF947] text-black',
+      softBadgeClass: 'bg-[#E6F4EA] text-[#14532D]',
+    };
+  }
+  if (verdict === 'busuk') {
+    return {
+      label: 'Tidak Segar',
+      badgeText: '× Tidak Segar',
+      badgeClass: 'bg-[#B91C1C] text-white',
+      softBadgeClass: 'bg-[#FEE2E2] text-[#991B1B]',
+    };
+  }
+  if (verdict === 'tidak_terdeteksi') {
+    return {
+      label: 'Tidak Terdeteksi',
+      badgeText: '⊘ Tidak Terdeteksi',
+      badgeClass: 'bg-[#334155] text-white',
+      softBadgeClass: 'bg-[#E2E8F0] text-[#1E293B]',
+    };
+  }
+  return {
+    label: 'Perlu Foto Ulang',
+    badgeText: '? Ragu',
+    badgeClass: 'bg-[#F59E0B] text-black',
+    softBadgeClass: 'bg-[#FEF3C7] text-[#92400E]',
+  };
+};
+
 export const getDiagnosisTitle = (res: AnalysisResult): string => {
   const verdict = resolveVerdict(res);
   if (verdict === 'tidak_terdeteksi') {
-    return 'Objek Tidak Terdeteksi';
+    return 'Objek Buah Tidak Terdeteksi';
   }
-  const label = verdict === 'segar' ? 'Segar' : verdict === 'busuk' ? 'Busuk' : 'Status Ragu';
-  return `${FRUIT_NAMES[res.fruit]} ${label}`;
+  const suffix = verdict === 'segar' ? 'Segar' : verdict === 'busuk' ? 'Tidak Segar' : 'Perlu Cek Ulang';
+  return `${FRUIT_NAMES[res.fruit]} ${suffix}`;
 };
 
 export const getExplanationText = (res: AnalysisResult): string => {
@@ -63,25 +91,24 @@ export const getExplanationText = (res: AnalysisResult): string => {
   if (verdict === 'tidak_terdeteksi') {
     return (
       res.ex ||
-      'Sistem tidak mendeteksi objek buah apel, pisang, atau jeruk yang valid pada foto ini. Pastikan foto menampilkan satu buah utuh di tengah bingkai dengan pencahayaan cukup dan latar polos.'
+      'Sistem tidak mendeteksi apel, pisang, atau jeruk utuh pada foto ini. Pastikan satu buah berada di tengah bingkai dengan cahaya cukup dan latar polos.'
     );
   }
   if ((res.fruitCount ?? 1) > 1) {
-    return `Terdeteksi ${res.fruitCount} kandidat buah dalam foto ini. Model dilatih untuk satu buah per bingkai, jadi hasil ditandai RAGU agar tidak menyesatkan. Coba foto satu buah di tengah bingkai dengan latar polos.`;
+    return `Terdeteksi ${res.fruitCount} kandidat buah dalam satu foto. Aplikasi ini dirancang untuk satu buah per foto, sehingga hasil ditandai ragu. Silakan foto satu buah saja di tengah bingkai.`;
   }
   if (verdict === 'ragu') {
-    return `Model hanya memiliki keyakinan ${formatPercent(res.conf)} (di bawah ambang 60%), sehingga status ditandai RAGU. Coba foto ulang dengan satu buah di tengah bingkai, pencahayaan merata, dan latar polos agar hasil lebih pasti.`;
+    if (res.ex && res.quality?.warnings?.length) {
+      return res.ex;
+    }
+    return `Keyakinan model ${formatPercent(res.conf)} belum cukup tinggi (di bawah 60%). Coba ambil ulang foto satu buah di tempat terang dengan fokus tajam dan latar polos.`;
   }
   if (res.ex) return res.ex;
-  const isLow = res.conf < 0.7;
-  const prefix = isLow ? 'Hasil estimasi awal: ' : '';
   if (res.rot) {
-    const locText = res.loc !== '–' && res.loc !== '-' ? `, terkonsentrasi di area ${res.loc}` : '';
-    return `${prefix}${FRUIT_NAMES[res.fruit]} menunjukkan anomali kesegaran karena ${DEFECT_DESCRIPTIONS[res.fruit]}${locText}. Defek menutupi estimasi ${res.rasio}% dari total permukaan buah yang diinspeksi.`;
-  } else {
-    const spotText = res.n ? `terdapat ${res.n} titik pigmen minor` : 'tanpa lesi atau bercak terdeteksi';
-    return `${prefix}${FRUIT_NAMES[res.fruit]} terklasifikasi prima: integritas warna kulit homogen dengan ${spotText} (rasio defek ${res.rasio}%).`;
+    const locText = res.loc !== '–' && res.loc !== '-' ? ` di area ${res.loc}` : '';
+    return `${FRUIT_NAMES[res.fruit]} dinilai tidak segar. Estimasi visual permukaan menunjukkan sekitar ${res.rasio}% area bercak${locText}.`;
   }
+  return `${FRUIT_NAMES[res.fruit]} dinilai segar dengan warna kulit tampak merata (estimasi bercak ${res.rasio}%).`;
 };
 
 export const loadImageElement = (src: string): Promise<HTMLImageElement> =>
@@ -92,391 +119,12 @@ export const loadImageElement = (src: string): Promise<HTMLImageElement> =>
     img.src = src;
   });
 
-function connectedComponents(mask: Uint8Array, w: number, h: number) {
-  const total = w * h;
-  const labels = new Int32Array(total);
-  const stack = new Int32Array(total);
-  const sizes = [0];
-  let currentLabel = 0;
-
-  for (let s = 0; s < total; s++) {
-    if (!mask[s] || labels[s]) continue;
-    currentLabel++;
-    let stackPointer = 0;
-    let area = 0;
-    stack[stackPointer++] = s;
-    labels[s] = currentLabel;
-
-    while (stackPointer > 0) {
-      const p = stack[--stackPointer];
-      area++;
-      const x = p % w;
-      const y = (p / w) | 0;
-
-      if (x > 0 && mask[p - 1] && !labels[p - 1]) { labels[p - 1] = currentLabel; stack[stackPointer++] = p - 1; }
-      if (x < w - 1 && mask[p + 1] && !labels[p + 1]) { labels[p + 1] = currentLabel; stack[stackPointer++] = p + 1; }
-      if (y > 0 && mask[p - w] && !labels[p - w]) { labels[p - w] = currentLabel; stack[stackPointer++] = p - w; }
-      if (y < h - 1 && mask[p + w] && !labels[p + w]) { labels[p + w] = currentLabel; stack[stackPointer++] = p + w; }
-    }
-    sizes.push(area);
-  }
-  return { labels, sizes };
-}
-
-function erodeMask(mask: Uint8Array, w: number, h: number, radius: number) {
-  const temp = new Uint8Array(w * h);
-  const output = new Uint8Array(w * h);
-
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      let keep = 1;
-      for (let d = -radius; d <= radius; d++) {
-        const xx = x + d;
-        if (xx < 0 || xx >= w || !mask[y * w + xx]) { keep = 0; break; }
-      }
-      temp[y * w + x] = keep;
-    }
-  }
-
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      let keep = 1;
-      for (let d = -radius; d <= radius; d++) {
-        const yy = y + d;
-        if (yy < 0 || yy >= h || !temp[yy * w + x]) { keep = 0; break; }
-      }
-      output[y * w + x] = keep;
-    }
-  }
-  return output;
-}
-
-function boxBlur(arr: Float32Array, w: number, h: number, radius: number): Float32Array {
-  const temp = new Float32Array(w * h);
-  const output = new Float32Array(w * h);
-  const kernelSize = 2 * radius + 1;
-  const bound = (v: number, max: number) => (v < 0 ? 0 : v >= max ? max - 1 : v);
-
-  for (let y = 0; y < h; y++) {
-    let sum = 0;
-    for (let x = -radius; x <= radius; x++) sum += arr[y * w + bound(x, w)];
-    for (let x = 0; x < w; x++) {
-      temp[y * w + x] = sum / kernelSize;
-      sum += arr[y * w + bound(x + radius + 1, w)] - arr[y * w + bound(x - radius, w)];
-    }
-  }
-
-  for (let x = 0; x < w; x++) {
-    let sum = 0;
-    for (let y = -radius; y <= radius; y++) sum += temp[bound(y, h) * w + x];
-    for (let y = 0; y < h; y++) {
-      output[y * w + x] = sum / kernelSize;
-      sum += temp[bound(y + radius + 1, h) * w + x] - temp[bound(y - radius, h) * w + x];
-    }
-  }
-  return output;
-}
-
 export function calculateClassProbs(fruit: FruitType, isRotten: 0 | 1, confidence: number): number[] {
-  const probs = Array(6).fill((1 - confidence) * 0.15 / 4);
+  const probs = Array(6).fill(((1 - confidence) * 0.15) / 4);
   const targetIndex = FRUIT_KEYS.indexOf(fruit) * 2 + isRotten;
   probs[targetIndex] = confidence;
   probs[targetIndex ^ 1] = (1 - confidence) * 0.85;
   return probs;
-}
-
-export function analyzeImageLocally(imageElement: HTMLImageElement): Omit<AnalysisResult, 'id' | 'src' | 'date'> {
-  const startTime = performance.now();
-  const scale = Math.min(1, 224 / Math.max(imageElement.naturalWidth, imageElement.naturalHeight));
-  const w = Math.max(16, Math.round(imageElement.naturalWidth * scale));
-  const h = Math.max(16, Math.round(imageElement.naturalHeight * scale));
-  const totalPixels = w * h;
-
-  const canvas = document.createElement('canvas');
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext('2d', { willReadFrequently: true });
-  if (!ctx) throw new Error('Could not get canvas context');
-  ctx.drawImage(imageElement, 0, 0, w, h);
-  const imageData = ctx.getImageData(0, 0, w, h).data;
-
-  const H = new Float32Array(totalPixels);
-  const S = new Float32Array(totalPixels);
-  const V = new Float32Array(totalPixels);
-
-  let coloredFruitPixels = 0;
-  for (let i = 0; i < totalPixels; i++) {
-    const r = imageData[i * 4] / 255;
-    const g = imageData[i * 4 + 1] / 255;
-    const b = imageData[i * 4 + 2] / 255;
-    const max = Math.max(r, g, b);
-    const min = Math.min(r, g, b);
-    const delta = max - min;
-    V[i] = max;
-    S[i] = max ? delta / max : 0;
-    let hue = 0;
-    if (delta) {
-      hue = max === r ? ((g - b) / delta) % 6 : max === g ? (b - r) / delta + 2 : (r - g) / delta + 4;
-      hue *= 60;
-      if (hue < 0) hue += 360;
-    }
-    H[i] = hue;
-    if (S[i] > 0.15 && V[i] > 0.12 && (hue <= 195 || hue >= 310)) {
-      coloredFruitPixels++;
-    }
-  }
-
-  const margin = Math.max(2, Math.round(Math.min(w, h) * 0.05));
-  const borderSamples: [number[], number[], number[]] = [[], [], []];
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      if (x < margin || y < margin || x >= w - margin || y >= h - margin) {
-        const idx = (y * w + x) * 4;
-        borderSamples[0].push(imageData[idx]);
-        borderSamples[1].push(imageData[idx + 1]);
-        borderSamples[2].push(imageData[idx + 2]);
-      }
-    }
-  }
-
-  const median = (arr: number[]) => (arr.length ? [...arr].sort((a, b) => a - b)[arr.length >> 1] : 0);
-  const bgColors = borderSamples.map(median);
-  const foreground = new Uint8Array(totalPixels);
-
-  for (let i = 0; i < totalPixels; i++) {
-    const dr = imageData[i * 4] - bgColors[0];
-    const dg = imageData[i * 4 + 1] - bgColors[1];
-    const db = imageData[i * 4 + 2] - bgColors[2];
-    foreground[i] = Math.sqrt(dr * dr + dg * dg + db * db) > 42 ? 1 : 0;
-  }
-
-  const { labels, sizes } = connectedComponents(foreground, w, h);
-  let bestLabel = 0;
-  let bestArea = 0;
-  sizes.forEach((area, idx) => {
-    if (idx && area > bestArea) {
-      bestArea = area;
-      bestLabel = idx;
-    }
-  });
-
-  const fruitMask = new Uint8Array(totalPixels);
-  let isFallbackMask = false;
-
-  if (bestLabel && bestArea > totalPixels * 0.02 && bestArea < totalPixels * 0.92) {
-    for (let i = 0; i < totalPixels; i++) fruitMask[i] = labels[i] === bestLabel ? 1 : 0;
-    const inv = fruitMask.map(v => (v ? 0 : 1));
-    const invComp = connectedComponents(inv, w, h);
-    const outerLabels = new Set<number>();
-    for (let x = 0; x < w; x++) {
-      outerLabels.add(invComp.labels[x]);
-      outerLabels.add(invComp.labels[(h - 1) * w + x]);
-    }
-    for (let y = 0; y < h; y++) {
-      outerLabels.add(invComp.labels[y * w]);
-      outerLabels.add(invComp.labels[y * w + w - 1]);
-    }
-    for (let i = 0; i < totalPixels; i++) {
-      if (inv[i] && !outerLabels.has(invComp.labels[i])) fruitMask[i] = 1;
-    }
-  } else {
-    isFallbackMask = true;
-    for (let y = 0; y < h; y++) {
-      for (let x = 0; x < w; x++) {
-        const u = (x - w / 2) / (w * 0.38);
-        const v = (y - h / 2) / (h * 0.38);
-        fruitMask[y * w + x] = u * u + v * v < 1 ? 1 : 0;
-      }
-    }
-  }
-
-  let minX = w, maxX = 0, minY = h, maxY = 0, fruitArea = 0;
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      if (fruitMask[y * w + x]) {
-        fruitArea++;
-        if (x < minX) minX = x;
-        if (x > maxX) maxX = x;
-        if (y < minY) minY = y;
-        if (y > maxY) maxY = y;
-      }
-    }
-  }
-
-  const bboxW = Math.max(1, maxX - minX + 1);
-  const bboxH = Math.max(1, maxY - minY + 1);
-  const fillRatio = fruitArea / (bboxW * bboxH);
-  const aspectRatio = Math.max(bboxW, bboxH) / Math.min(bboxW, bboxH);
-
-  const innerMask = erodeMask(fruitMask, w, h, Math.max(2, Math.round(Math.sqrt(fruitArea) * 0.045)));
-  const innerIndices: number[] = [];
-  for (let i = 0; i < totalPixels; i++) {
-    if (innerMask[i]) innerIndices.push(i);
-  }
-
-  const validPixelCount = Math.max(innerIndices.length, 1);
-  const Rs: number[] = [], Gs: number[] = [], Bs: number[] = [], Vs: number[] = [];
-  innerIndices.forEach(i => {
-    Rs.push(imageData[i * 4]);
-    Gs.push(imageData[i * 4 + 1]);
-    Bs.push(imageData[i * 4 + 2]);
-    Vs.push(V[i]);
-  });
-
-  const medianColor = [median(Rs), median(Gs), median(Bs)];
-  let yellow = 0, orange = 0, red = 0, green = 0;
-  const defectMask = new Uint8Array(totalPixels);
-  let defectCount = 0, sumX = 0, sumY = 0, sumColorDiff = 0, textureVariation = 0;
-
-  innerIndices.forEach(i => {
-    const hu = H[i], s = S[i], v = V[i];
-    if (hu >= 45 && hu < 72 && s > 0.35 && v > 0.5) yellow++;
-    else if (hu >= 14 && hu < 45 && s > 0.55 && v > 0.55) orange++;
-    else if ((hu < 14 || hu > 340) && s > 0.45 && v > 0.25) red++;
-    else if (hu >= 70 && hu < 160 && s > 0.25) green++;
-
-    const isBrownish = hu >= 12 && hu < 50 && s > 0.25 && v > 0.08 && v < 0.55;
-    if (v < 0.2 || isBrownish) {
-      defectMask[i] = 1;
-      defectCount++;
-      sumX += i % w;
-      sumY += (i / w) | 0;
-      sumColorDiff += Math.hypot(
-        imageData[i * 4] - medianColor[0],
-        imageData[i * 4 + 1] - medianColor[1],
-        imageData[i * 4 + 2] - medianColor[2]
-      );
-    }
-    if (i + 1 < totalPixels) textureVariation += Math.abs(V[i] - V[i + 1]);
-  });
-
-  const defectRatio = defectCount / validPixelCount;
-  const yellowRatio = yellow / validPixelCount;
-  const orangeRatio = orange / validPixelCount;
-  const redRatio = red / validPixelCount;
-  const greenRatio = green / validPixelCount;
-  const totalFruitColorRatio = yellowRatio + orangeRatio + redRatio + greenRatio;
-
-  const isOod =
-    (isFallbackMask && totalFruitColorRatio < 0.15) ||
-    coloredFruitPixels / totalPixels < 0.02 ||
-    (totalFruitColorRatio < 0.05 && defectRatio < 0.05);
-
-  const imgAspect = Math.max(imageElement.naturalWidth, 1) / Math.max(imageElement.naturalHeight, 1);
-  const isElongated = aspectRatio > 1.25 || imgAspect > 1.30 || imgAspect < 0.75 || fillRatio < 0.66;
-
-  let scoreBanana = (isElongated ? 4.2 : 0.4) + yellowRatio * 5.5;
-  let scoreOrange = (isElongated ? 0.3 : 2.5) + orangeRatio * 6.0;
-  let scoreApple = (isElongated ? 0.3 : 2.5) + (redRatio * 6.0) + (greenRatio * 2.5);
-
-  const medH = median(innerIndices.map(i => H[i]));
-  if (medH >= 38 && medH <= 75) scoreBanana += 2.0;
-  if (medH >= 15 && medH < 38) scoreOrange += 2.0;
-  if (medH < 15 || medH > 330) scoreApple += 2.0;
-
-  if (isElongated && defectRatio > 0.08) {
-    scoreBanana += 3.5;
-  }
-
-  let fruitType: FruitType = 'apple';
-  if (scoreBanana >= scoreOrange && scoreBanana >= scoreApple) {
-    fruitType = 'banana';
-  } else if (scoreOrange >= scoreApple) {
-    fruitType = 'orange';
-  } else {
-    fruitType = 'apple';
-  }
-
-  const rotThreshold = fruitType === 'banana' ? 0.09 : 0.07;
-  const isRotten: 0 | 1 = defectRatio >= rotThreshold ? 1 : 0;
-
-  const rawSupport = clampNum(totalFruitColorRatio + (isRotten ? defectRatio : 0), 0, 1);
-  const confidence = isOod
-    ? 0.25
-    : clampNum(0.55 + rawSupport * 0.38, 0.45, 0.96);
-
-  const spotCount = (() => {
-    const comp = connectedComponents(defectMask, w, h);
-    return comp.sizes.filter((area, i) => i && area >= Math.max(6, fruitArea * 0.004)).length;
-  })();
-
-  let defectLocation = '–';
-  if (defectCount > 0 && defectRatio > 0.01) {
-    const cx = (sumX / defectCount - minX) / bboxW;
-    const cy = (sumY / defectCount - minY) / bboxH;
-    const vPos = cy < 0.34 ? 'atas' : cy > 0.66 ? 'bawah' : '';
-    const hPos = cx < 0.34 ? 'kiri' : cx > 0.66 ? 'kanan' : '';
-    defectLocation = (vPos + ' ' + hPos).trim() || 'tengah';
-  }
-
-  const mf = new Float32Array(totalPixels);
-  const df = new Float32Array(totalPixels);
-  for (let i = 0; i < totalPixels; i++) {
-    mf[i] = fruitMask[i];
-    df[i] = defectMask[i];
-  }
-
-  const blurRadius = Math.max(2, Math.round(Math.sqrt(fruitArea) * (isRotten ? 0.07 : 0.22)));
-  const heatmap = boxBlur(boxBlur(isRotten ? df : mf, w, h, blurRadius), w, h, blurRadius);
-  let maxHeat = 0;
-  heatmap.forEach(v => { if (v > maxHeat) maxHeat = v; });
-  const smoothFruitMask = boxBlur(mf, w, h, 3);
-
-  const createPngFromData = (pixelFunc: (idx: number) => number[]) => {
-    const c = document.createElement('canvas');
-    c.width = w;
-    c.height = h;
-    const x = c.getContext('2d');
-    if (!x) return '';
-    const imgData = x.createImageData(w, h);
-    for (let i = 0; i < totalPixels; i++) {
-      const rgba = pixelFunc(i);
-      imgData.data[i * 4] = rgba[0];
-      imgData.data[i * 4 + 1] = rgba[1];
-      imgData.data[i * 4 + 2] = rgba[2];
-      imgData.data[i * 4 + 3] = rgba[3];
-    }
-    x.putImageData(imgData, 0, 0);
-    return c.toDataURL('image/png');
-  };
-
-  const lerpColor = (a: number[], b: number[], t: number) =>
-    a.map((val, idx) => Math.round(val + (b[idx] - val) * t));
-
-  const gradCamPng = createPngFromData(i => {
-    let t = maxHeat > 1e-6 ? heatmap[i] / maxHeat : 0;
-    if (!isRotten) t *= 0.55;
-    const color = t < 0.5 ? lerpColor([0, 176, 255], [255, 196, 0], t * 2) : lerpColor([255, 196, 0], [255, 23, 68], (t - 0.5) * 2);
-    const alpha = Math.round(clampNum(t * 1.3, 0, 0.85) * 255 * clampNum(smoothFruitMask[i] * 1.6, 0, 1));
-    return [color[0], color[1], color[2], alpha];
-  });
-
-  const defectMaskPng = createPngFromData(i => {
-    return defectMask[i] ? [255, 69, 58, 230] : fruitMask[i] ? [0, 0, 0, 120] : [0, 0, 0, 160];
-  });
-
-  const fruitCount = isOod ? 0 : 1;
-
-  return {
-    fruit: fruitType,
-    rot: isRotten,
-    conf: confidence,
-    isOod,
-    fruitCount,
-    verdict: getVerdict(confidence, isRotten, isOod, fruitCount),
-    n: spotCount,
-    rasio: Math.round(defectRatio * 100),
-    loc: defectLocation,
-    jw: Math.round(sumColorDiff / Math.max(defectCount, 1) * 10) / 10,
-    tk: Math.round(textureVariation / validPixelCount * 100) / 10,
-    p: isOod ? [0.16, 0.16, 0.17, 0.17, 0.17, 0.17] : calculateClassProbs(fruitType, isRotten, confidence),
-    cam: gradCamPng,
-    msk: defectMaskPng,
-    ar: w / h,
-    fb: isFallbackMask,
-    ms: Math.round(performance.now() - startTime),
-    model: 'heuristik-warna (fallback offline)',
-  };
 }
 
 export const FRUIT_PHOTO_MAP: Record<FruitType, [string, string]> = {
@@ -485,105 +133,91 @@ export const FRUIT_PHOTO_MAP: Record<FruitType, [string, string]> = {
   orange: ['/fruit/orange_fresh.jpg', '/fruit/orange_rotten.jpg'],
 };
 
-export function createSampleFruitDataUrl(fruit: FruitType, isRotten: 0 | 1): string {
-  return FRUIT_PHOTO_MAP[fruit]?.[isRotten] || '/fruit/apple_fresh.jpg';
+export function createSampleResult(preset: DemoPreset): AnalysisResult {
+  const [fruit, rot, conf, rasio, n, loc, jw, tk] = preset;
+  const p = calculateClassProbs(fruit, rot, conf);
+  const photo = FRUIT_PHOTO_MAP[fruit]?.[rot] || '/fruit/apple_fresh.jpg';
+  return {
+    id: Date.now(),
+    fruit,
+    rot,
+    conf,
+    verdict: getVerdict(conf, rot),
+    n,
+    rasio,
+    loc,
+    jw,
+    tk,
+    p,
+    src: 'contoh',
+    model: 'contoh-preset (bukan inferensi langsung)',
+    date: new Date().toISOString(),
+    ms: 0,
+    img: photo,
+    thumb: photo,
+    ex: 'Ini adalah contoh tampilan hasil (mode sampel) karena server analisis tidak terhubung. Untuk memeriksa foto buah Anda sendiri, pastikan layanan analisis aktif.',
+  };
 }
 
-export async function runAnalysis(
-  file: File | null,
-  src: 'browser' | 'api' | 'contoh',
-  preset?: DemoPreset
-): Promise<AnalysisResult> {
-  const now = new Date().toISOString();
-  const id = Date.now();
-
-  if (src === 'contoh' && preset) {
-    const [fruit, rot, conf, rasio, n, loc, jw, tk] = preset;
-    const p = calculateClassProbs(fruit, rot, conf);
-    const photoDataUrl = createSampleFruitDataUrl(fruit, rot);
-
-    return {
-      id,
-      fruit,
-      rot,
-      conf,
-      verdict: getVerdict(conf, rot),
-      n,
-      rasio,
-      loc,
-      jw,
-      tk,
-      p,
-      src: 'contoh',
-      model: 'mobilenetv3small_external_green_v2 (sampel)',
-      date: now,
-      ms: 48,
-      img: photoDataUrl,
-      thumb: photoDataUrl,
-    };
+/** Resize large photos on the client before sending to /v1/predict to speed up mobile uploads. */
+async function compressImageForUpload(
+  imgElem: HTMLImageElement,
+  maxDim = 640,
+  quality = 0.86
+): Promise<Blob> {
+  const scale = Math.min(1, maxDim / Math.max(imgElem.naturalWidth || 1, imgElem.naturalHeight || 1));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(imgElem.naturalWidth * scale));
+  canvas.height = Math.max(1, Math.round(imgElem.naturalHeight * scale));
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    throw new Error('Peramban gagal menyiapkan gambar untuk diunggah.');
   }
+  ctx.drawImage(imgElem, 0, 0, canvas.width, canvas.height);
 
-  if (!file) throw new Error('Berkas gambar tidak ditemukan');
-
-  const photoDataUrl = await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const maxDim = 640;
-        const scale = Math.min(1, maxDim / Math.max(img.naturalWidth, img.naturalHeight));
-        const c = document.createElement('canvas');
-        c.width = Math.round(img.naturalWidth * scale);
-        c.height = Math.round(img.naturalHeight * scale);
-        const ctx = c.getContext('2d');
-        if (!ctx) return resolve(e.target?.result as string);
-        ctx.drawImage(img, 0, 0, c.width, c.height);
-        resolve(c.toDataURL('image/jpeg', 0.85));
-      };
-      img.onerror = () => resolve(e.target?.result as string);
-      img.src = e.target?.result as string;
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error('Gagal mengompresi gambar sebelum dikirim.'));
+      },
+      'image/jpeg',
+      quality
+    );
   });
-
-  const imgElem = await loadImageElement(photoDataUrl);
-  const partial = analyzeImageLocally(imgElem);
-
-  return {
-    id,
-    ...partial,
-    verdict: getVerdict(partial.conf, partial.rot, partial.isOod, partial.fruitCount),
-    src: 'browser',
-    date: now,
-    img: photoDataUrl,
-    thumb: photoDataUrl,
-  };
 }
 
 export async function fetchPredictionFromApi(
   apiEndpoint: string,
   imgElem: HTMLImageElement,
-  fileObj: { url: string; name?: string }
+  fileObj: { url: string; name?: string },
+  signal?: AbortSignal
 ): Promise<AnalysisResult> {
-  const blob = await (await fetch(fileObj.url)).blob();
+  if (!apiEndpoint) {
+    throw new Error('Layanan analisis belum dikonfigurasi. Silakan coba lagi nanti.');
+  }
+
+  const compressedBlob = await compressImageForUpload(imgElem, 640, 0.86);
   const formData = new FormData();
-  formData.append('image', blob, fileObj.name || 'foto.jpg');
+  const safeName = (fileObj.name || 'foto.jpg').replace(/\.[^.]+$/, '') + '.jpg';
+  formData.append('image', compressedBlob, safeName);
 
   const base = apiEndpoint.replace(/\/$/, '');
   const response = await fetch(base + '/v1/predict', {
     method: 'POST',
     body: formData,
+    signal,
   });
 
   if (!response.ok) {
-    let errMsg = `API Prediction failed (${response.status})`;
+    let errMsg = `Layanan analisis mengembalikan gangguan (kode ${response.status}). Silakan coba lagi.`;
     try {
       const errJson = await response.json();
       if (errJson?.detail) errMsg = String(errJson.detail);
     } catch {}
     throw new Error(errMsg);
   }
+
   const json = await response.json();
   const labelIndex = Math.max(0, MODEL_LABELS.indexOf(json.label));
   const ft = json.features || {};
@@ -605,16 +239,17 @@ export async function fetchPredictionFromApi(
     isOod,
     verdict,
     fruitCount,
+    quality: json.quality || undefined,
     n: ft.jumlah_bercak || 0,
     rasio: Math.round(defectRatio <= 1 ? defectRatio * 100 : defectRatio),
     loc: ft.lokasi_bercak || '–',
     jw: ft.jarak_warna ?? 0,
     tk: ft.tekstur ?? 0,
-    p: MODEL_LABELS.map(l => (json.probs && json.probs[l]) || 0),
+    p: MODEL_LABELS.map((l) => (json.probs && json.probs[l]) || 0),
     img: fileObj.url,
     cam: formatBase64(json.images?.gradcam_overlay),
     msk: formatBase64(json.images?.defect_mask),
-    ar: imgElem.naturalWidth / imgElem.naturalHeight,
+    ar: imgElem.naturalWidth / Math.max(imgElem.naturalHeight, 1),
     ex: json.explanation,
     ms: json.inference_ms || 0,
     src: 'api',

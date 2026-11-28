@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AnalysisResult, Verdict } from '../types';
+import { RotateCcw, AlertTriangle } from 'lucide-react';
+import { AnalysisResult } from '../types';
 import {
   MODEL_LABELS,
+  formatLabelId,
   formatPercent,
   getDiagnosisTitle,
   getExplanationText,
+  getVerdictMeta,
   resolveVerdict,
 } from '../services/cvEngine';
 import { sound } from '../services/soundEngine';
@@ -15,34 +18,23 @@ interface AnalysisResultCardProps {
   result: AnalysisResult;
   showHeatmap: boolean;
   onToggleHeatmap: () => void;
+  onReset: () => void;
+  onUpdateItem?: (updated: AnalysisResult) => void;
 }
-
-const verdictLabel = (verdict: Verdict): string =>
-  verdict === 'segar'
-    ? 'Segar'
-    : verdict === 'busuk'
-    ? 'Busuk'
-    : verdict === 'tidak_terdeteksi'
-    ? 'Tidak Terdeteksi'
-    : 'Status Ragu';
-
-const verdictClass = (verdict: Verdict): string =>
-  verdict === 'segar'
-    ? 'bg-[#8DF947] text-black'
-    : verdict === 'busuk'
-    ? 'bg-[#EB3322] text-white'
-    : verdict === 'tidak_terdeteksi'
-    ? 'bg-slate-700 text-white'
-    : 'bg-[#FFC737] text-black';
 
 export const AnalysisResultCard: React.FC<AnalysisResultCardProps> = ({
   result,
   showHeatmap,
   onToggleHeatmap,
+  onReset,
+  onUpdateItem,
 }) => {
   const [detailOpen, setDetailOpen] = useState(false);
   const multipleFruits = (result.fruitCount ?? 1) > 1;
   const verdict = resolveVerdict(result);
+  const meta = getVerdictMeta(verdict);
+  const qualityWarnings = result.quality?.warnings || [];
+
   const ranked = MODEL_LABELS.map((label, index) => ({
     label,
     value: result.p?.[index] ?? 0,
@@ -52,98 +44,140 @@ export const AnalysisResultCard: React.FC<AnalysisResultCardProps> = ({
 
   return (
     <>
-      <div className="w-full bg-[#F7F2E5] text-black border-3 border-black shadow-[8px_8px_0_#000000] rounded-3xl p-5 sm:p-6 space-y-4 animate-specimen-pop">
+      <div
+        role="region"
+        aria-live="polite"
+        aria-label="Hasil analisis kesegaran buah"
+        className="w-full bg-[var(--fs-surface)] text-black border-3 border-black shadow-[6px_6px_0_#000] rounded-3xl p-5 sm:p-6 space-y-4 animate-specimen-pop"
+      >
         <div className="flex items-center justify-between gap-3">
-          <span className="font-mono-tech text-[10px] uppercase tracking-widest text-black/60">
-            Hasil Analisis
+          <span className="font-mono-tech text-xs uppercase tracking-wider font-bold text-black/75">
+            {result.src === 'contoh' ? 'Pratinjau Contoh (Sampel)' : 'Hasil Pemeriksaan'}
           </span>
           <span
-            className={`px-3 py-1 rounded-full border-2 border-black font-passata text-xs uppercase font-bold ${verdictClass(verdict)}`}
+            className={`px-3 py-1 rounded-full border-2 border-black font-passata text-xs uppercase font-bold ${meta.badgeClass}`}
           >
-            {verdictLabel(verdict)}
+            {meta.badgeText}
           </span>
         </div>
 
         <div>
-          <h2 className="font-passata text-3xl sm:text-4xl uppercase leading-none">
+          <h2 className="font-passata text-2xl sm:text-3xl uppercase leading-tight">
             {getDiagnosisTitle(result)}
           </h2>
-          <p className="font-mono-tech text-xs text-black/60 mt-2">
-            Keyakinan {formatPercent(result.conf)} · {result.ms ?? 0} ms · {result.model}
-          </p>
+          {verdict !== 'tidak_terdeteksi' && (
+            <p className="font-mono-tech text-xs text-black/75 mt-1.5">
+              Tingkat keyakinan: <strong>{formatPercent(result.conf)}</strong>
+              {result.ms ? ` · ${result.ms} ms` : ''}
+            </p>
+          )}
         </div>
 
-        {verdict !== 'tidak_terdeteksi' && (
-          <div className="rounded-2xl border-2 border-black bg-white p-3">
-            <div className="text-[10px] font-bold uppercase tracking-widest text-black/60 mb-2">
-              Probabilitas tertinggi
+        {qualityWarnings.length > 0 && (
+          <div className="rounded-2xl border-2 border-[#92400E] bg-[#FEF3C7] p-3 text-xs font-semibold text-[#78350F] leading-relaxed flex items-start gap-2">
+            <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+            <div>
+              <strong>Peringatan kualitas foto:</strong> {qualityWarnings.join(' ')}
             </div>
-            <div className="space-y-1.5">
+          </div>
+        )}
+
+        {multipleFruits && (
+          <div className="rounded-2xl border-2 border-[#92400E] bg-[#FEF3C7] p-3 text-xs font-semibold text-[#78350F] leading-relaxed">
+            Terdeteksi {result.fruitCount} kandidat buah. Aplikasi dioptimalkan untuk satu buah per foto sehingga status ditandai ragu.
+          </div>
+        )}
+
+        {verdict === 'tidak_terdeteksi' && (
+          <div className="rounded-2xl border-2 border-black bg-[#E2E8F0] p-3 text-xs font-semibold text-[#0F172A] leading-relaxed">
+            Apel, pisang, atau jeruk utuh tidak terdeteksi. Gunakan foto satu buah yang jelas dengan latar polos.
+          </div>
+        )}
+
+        {verdict !== 'tidak_terdeteksi' && (
+          <div className="rounded-2xl border-2 border-black bg-white p-3.5 space-y-2">
+            <div className="text-xs font-bold uppercase tracking-wide text-black/75">
+              Kemungkinan kelas tertinggi
+            </div>
+            <div className="space-y-2">
               {ranked.map((item) => (
-                <div key={item.label} className="flex items-center gap-2 text-[11px] font-mono-tech">
-                  <span className="w-28 truncate">{item.label.replace('_', ' ')}</span>
-                  <div className="flex-1 h-2 rounded-full bg-black/10 overflow-hidden">
+                <div key={item.label} className="flex items-center gap-2.5 text-xs font-mono-tech">
+                  <span className="w-28 truncate font-sans font-semibold text-black">
+                    {formatLabelId(item.label)}
+                  </span>
+                  <div className="flex-1 h-2.5 rounded-full bg-black/10 overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-[#1E6B3E]"
-                      style={{ width: `${Math.max(item.value * 100, 2)}%` }}
+                      className="h-full rounded-full bg-[var(--fs-green-primary)]"
+                      style={{ width: `${Math.max(item.value * 100, item.value > 0 ? 2 : 0)}%` }}
                     />
                   </div>
-                  <span className="w-12 text-right font-bold">{formatPercent(item.value)}</span>
+                  <span className="w-12 text-right font-bold text-black">
+                    {formatPercent(item.value)}
+                  </span>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-2 text-[11px]">
-          <div className="rounded-xl border border-black/20 bg-white p-2 flex justify-between gap-2">
-            <span>Rasio defek</span>
-            <b>{result.rasio || 0}%</b>
-          </div>
-          <div className="rounded-xl border border-black/20 bg-white p-2 flex justify-between gap-2">
-            <span>Jumlah bercak</span>
-            <b>{result.n || 0}</b>
-          </div>
-        </div>
-
-        {multipleFruits && (
-          <div className="rounded-2xl border-2 border-black bg-[#FFF3D6] p-3 text-[11px] font-semibold text-black/80 leading-relaxed">
-            ⚠ Terdeteksi {result.fruitCount} kandidat buah. Model dioptimalkan untuk satu buah
-            per foto; hasil ditandai RAGU.
+        {verdict !== 'tidak_terdeteksi' && (
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="rounded-xl border border-black/25 bg-white p-2.5 flex justify-between gap-2">
+              <span className="text-black/75">Estimasi bercak</span>
+              <strong>{result.rasio || 0}%</strong>
+            </div>
+            <div className="rounded-xl border border-black/25 bg-white p-2.5 flex justify-between gap-2">
+              <span className="text-black/75">Jumlah bercak</span>
+              <strong>{result.n || 0}</strong>
+            </div>
           </div>
         )}
 
-        {verdict === 'tidak_terdeteksi' && (
-          <div className="rounded-2xl border-2 border-black bg-slate-200 p-3 text-[11px] font-semibold text-black/85 leading-relaxed">
-            ⚠ Objek buah tidak terdeteksi secara valid. Gunakan foto apel, pisang, atau jeruk utuh dengan latar belakang polos.
-          </div>
-        )}
-
-        <p className="text-xs font-medium leading-relaxed text-black/80 bg-white/70 border border-black/15 rounded-2xl p-3">
+        <p className="text-xs sm:text-sm font-medium leading-relaxed text-black/90 bg-white border border-black/20 rounded-2xl p-3.5">
           {getExplanationText(result)}
         </p>
 
-        <div className="flex flex-wrap gap-2">
+        <p className="text-xs text-black/75 leading-snug">
+          Catatan: Penilaian ini berdasarkan tampilan visual kulit buah dan bukan jaminan keamanan pangan atau kelayakan konsumsi.
+        </p>
+
+        <div className="flex flex-wrap gap-2 pt-1">
+          <button
+            type="button"
+            onClick={() => {
+              sound.play('click');
+              onReset();
+            }}
+            className="min-h-11 px-4 py-2 rounded-xl border-2 border-black bg-[var(--fs-accent)] text-black hover:bg-[var(--fs-accent-hover)] font-passata text-xs uppercase font-bold shadow-[2px_2px_0_#000] cursor-pointer flex items-center gap-1.5"
+          >
+            <RotateCcw size={14} />
+            <span>Periksa Buah Lain</span>
+          </button>
+
           {result.cam && verdict !== 'tidak_terdeteksi' && (
             <button
+              type="button"
               onClick={onToggleHeatmap}
-              className="px-3 py-2 rounded-xl border-2 border-black bg-white hover:bg-[#FFF3D6] font-passata text-[11px] uppercase font-bold shadow-[2px_2px_0_#000000] cursor-pointer"
+              className="min-h-11 px-3.5 py-2 rounded-xl border-2 border-black bg-white hover:bg-[#FFF3D6] font-passata text-xs uppercase font-bold shadow-[2px_2px_0_#000] cursor-pointer"
             >
-              {showHeatmap ? 'Citra Asli' : 'Grad-CAM'}
+              {showHeatmap ? 'Foto Asli' : 'Peta Fokus'}
             </button>
           )}
+
           <button
+            type="button"
             onClick={() => {
               sound.play('click');
               setDetailOpen(true);
             }}
-            className="px-3 py-2 rounded-xl border-2 border-black bg-black text-white hover:bg-black/85 font-passata text-[11px] uppercase font-bold shadow-[2px_2px_0_#000000] cursor-pointer"
+            className="min-h-11 px-3.5 py-2 rounded-xl border-2 border-black bg-black text-white hover:bg-black/85 font-passata text-xs uppercase font-bold shadow-[2px_2px_0_#000] cursor-pointer"
           >
             Detail
           </button>
+
           <Link
             to="/riwayat"
-            className="px-3 py-2 rounded-xl border-2 border-black bg-[#8DF947] text-black hover:bg-[#A3FF6B] font-passata text-[11px] uppercase font-bold shadow-[2px_2px_0_#000000]"
+            className="min-h-11 px-3.5 py-2 rounded-xl border-2 border-black bg-white text-black hover:bg-black/5 font-passata text-xs uppercase font-bold shadow-[2px_2px_0_#000] inline-flex items-center"
           >
             Riwayat
           </Link>
@@ -151,7 +185,15 @@ export const AnalysisResultCard: React.FC<AnalysisResultCardProps> = ({
       </div>
 
       {detailOpen && (
-        <ResultDetailModal result={result} onClose={() => setDetailOpen(false)} />
+        <ResultDetailModal
+          result={result}
+          onClose={() => setDetailOpen(false)}
+          onUpdateItem={onUpdateItem}
+          onAnalyzeAgain={() => {
+            setDetailOpen(false);
+            onReset();
+          }}
+        />
       )}
     </>
   );

@@ -1,6 +1,6 @@
-// Planet Oño Audio Engine for FreshSight
+// Opt-in UI Sound Engine (muted by default so repeated use is non-intrusive)
 class SoundEngine {
-  private enabled: boolean = true;
+  private enabled: boolean = false;
   private audioCache: Record<string, HTMLAudioElement> = {};
 
   constructor() {
@@ -34,11 +34,11 @@ class SoundEngine {
     try {
       if (!this.audioCache[name]) {
         this.audioCache[name] = new Audio(`/sounds/${name}.mp3`);
-        this.audioCache[name].volume = name === 'hover' ? 0.25 : 0.45;
+        this.audioCache[name].volume = name === 'hover' ? 0.2 : 0.4;
       }
-      const sound = this.audioCache[name];
-      sound.currentTime = 0;
-      sound.play().catch(() => {});
+      const audio = this.audioCache[name];
+      audio.currentTime = 0;
+      audio.play().catch(() => {});
     } catch {}
   }
 }

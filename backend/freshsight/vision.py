@@ -163,11 +163,12 @@ def fruit_mask(bgr: np.ndarray) -> np.ndarray:
 def suppress_fruit_sticker(bgr: np.ndarray) -> tuple[np.ndarray, bool]:
     """Detect and inpaint compact supermarket PLU / barcode stickers on fruit skin.
 
-    Handles both:
-    1) High-contrast white-paper + dark-ink barcode/text PLU stickers (any border color),
-       distinguished from fuzzy mold and specular highlights by compact solidity and
-       razor-sharp printed edge gradients (Sobel p90 >= 200, sharp-edge ratio >= 0.24).
+    Handles three supermarket sticker/barcode types without disturbing natural mold or highlights:
+    1) High-contrast white-paper + dark-ink barcode/text PLU stickers (including small/anti-aliased ovals),
+       separated from fuzzy mold & specular highlights by compact solidity and sharp Sobel edge gradients.
     2) Vivid non-biological blue/indigo/violet PLU stickers with printed text/barcode detail.
+    3) Direct/transparent printed barcodes (no white paper) detected via >= 7 periodic alternating
+       parallel dark/light stripes (anisotropic high-pass sign flips) strictly inside the fruit interior.
     """
     h_img, w_img = bgr.shape[:2]
     img_area = float(h_img * w_img)
@@ -186,70 +187,113 @@ def suppress_fruit_sticker(bgr: np.ndarray) -> tuple[np.ndarray, bool]:
     border_ok[:, -margin:] = False
     inner = inner & border_ok
 
-    white_paper = (sat < 52) & (val > 175) & inner
-    dark_ink = (sat < 85) & (val < 115) & inner
+    white_paper = (sat < 60) & (val > 165) & inner
+    dark_ink = (sat < 90) & (val < 120) & inner
     blue_ink = (hue >= 98) & (hue <= 150) & (sat > 75) & (val > 40) & inner
 
-    if int(np.count_nonzero(white_paper)) + int(np.count_nonzero(blue_ink)) < int(0.0015 * img_area):
-        return bgr, False
-
-    gx = cv2.Sobel(gray, cv2.CV_32F, 1, 0, ksize=3)
-    gy = cv2.Sobel(gray, cv2.CV_32F, 0, 1, ksize=3)
-    grad = np.sqrt(gx * gx + gy * gy)
-
-    cand_raw = (white_paper | dark_ink | blue_ink).astype(np.uint8) * 255
-    cand_closed = cv2.morphologyEx(cand_raw, cv2.MORPH_CLOSE, np.ones((7, 7), np.uint8), iterations=2)
-    cand_closed = cv2.morphologyEx(cand_closed, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8), iterations=1)
-    contours, _ = cv2.findContours(cand_closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    gx_signed = cv2.Sobel(gray, cv2.CV_32F, 1, 0, ksize=3)
+    gy_signed = cv2.Sobel(gray, cv2.CV_32F, 0, 1, ksize=3)
+    gx_abs = np.abs(gx_signed)
+    gy_abs = np.abs(gy_signed)
+    grad = np.sqrt(gx_signed * gx_signed + gy_signed * gy_signed)
 
     sticker_mask = np.zeros((h_img, w_img), dtype=np.uint8)
-    for cnt in contours:
-        area = cv2.contourArea(cnt)
-        area_ratio = area / img_area
-        if area_ratio < 0.0025 or area_ratio > 0.14:
-            continue
-        _, _, bw, bh = cv2.boundingRect(cnt)
-        aspect = bw / max(bh, 1)
-        hull_area = cv2.contourArea(cv2.convexHull(cnt))
-        solidity = area / max(hull_area, 1.0)
 
-        blob_u8 = np.zeros((h_img, w_img), dtype=np.uint8)
-        cv2.drawContours(blob_u8, [cnt], -1, 255, -1)
-        blob = blob_u8 > 0
-        n_pix = max(int(blob.sum()), 1)
+    # Branch 1 & 2: White-paper / dark-ink / vivid-blue PLU stickers
+    if int(np.count_nonzero(white_paper)) + int(np.count_nonzero(blue_ink)) >= int(0.0015 * img_area):
+        cand_raw = (white_paper | dark_ink | blue_ink).astype(np.uint8) * 255
+        cand_closed = cv2.morphologyEx(cand_raw, cv2.MORPH_CLOSE, np.ones((7, 7), np.uint8), iterations=2)
+        cand_closed = cv2.morphologyEx(cand_closed, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8), iterations=1)
+        contours, _ = cv2.findContours(cand_closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-        w_frac = float((white_paper & blob).sum()) / n_pix
-        d_frac = float((dark_ink & blob).sum()) / n_pix
-        b_frac = float((blue_ink & blob).sum()) / n_pix
-        sharp_edge_frac = float(((grad > 120.0) & blob).sum()) / n_pix
-        mean_grad = float(grad[blob].mean())
-        p90_grad = float(np.percentile(grad[blob], 90))
+        for cnt in contours:
+            area = cv2.contourArea(cnt)
+            area_ratio = area / img_area
+            if area_ratio < 0.0025 or area_ratio > 0.14:
+                continue
+            _, _, bw, bh = cv2.boundingRect(cnt)
+            aspect = bw / max(bh, 1)
+            hull_area = cv2.contourArea(cv2.convexHull(cnt))
+            solidity = area / max(hull_area, 1.0)
 
-        is_barcode_sticker = (
-            (0.35 <= aspect <= 2.8)
-            and solidity >= 0.70
-            and w_frac >= 0.16
-            and (d_frac >= 0.07 or b_frac >= 0.04)
-            and sharp_edge_frac >= 0.24
-            and mean_grad >= 100.0
-            and p90_grad >= 200.0
-        )
-        is_blue_sticker = (
-            (0.30 <= aspect <= 3.2)
-            and solidity >= 0.65
-            and b_frac >= 0.15
-            and area_ratio <= 0.10
-            and sharp_edge_frac >= 0.22
-            and p90_grad >= 190.0
-        )
-        if is_barcode_sticker or is_blue_sticker:
-            sticker_mask[blob] = 255
+            blob_u8 = np.zeros((h_img, w_img), dtype=np.uint8)
+            cv2.drawContours(blob_u8, [cnt], -1, 255, -1)
+            blob = blob_u8 > 0
+            n_pix = max(int(blob.sum()), 1)
+
+            w_frac = float((white_paper & blob).sum()) / n_pix
+            d_frac = float((dark_ink & blob).sum()) / n_pix
+            b_frac = float((blue_ink & blob).sum()) / n_pix
+            sharp_edge_frac = float(((grad > 120.0) & blob).sum()) / n_pix
+            mean_grad = float(grad[blob].mean())
+            p90_grad = float(np.percentile(grad[blob], 90))
+
+            is_barcode_sticker = (
+                (0.35 <= aspect <= 2.8)
+                and solidity >= 0.70
+                and w_frac >= 0.16
+                and (d_frac >= 0.07 or b_frac >= 0.04)
+                and sharp_edge_frac >= 0.24
+                and mean_grad >= 100.0
+                and p90_grad >= 200.0
+            )
+            is_small_white_sticker = (
+                (0.35 <= aspect <= 2.8)
+                and solidity >= 0.85
+                and area_ratio <= 0.08
+                and w_frac >= 0.35
+                and sharp_edge_frac >= 0.35
+                and mean_grad >= 105.0
+                and p90_grad >= 210.0
+            )
+            is_blue_sticker = (
+                (0.30 <= aspect <= 3.2)
+                and solidity >= 0.65
+                and b_frac >= 0.15
+                and area_ratio <= 0.10
+                and sharp_edge_frac >= 0.22
+                and p90_grad >= 190.0
+            )
+            if is_barcode_sticker or is_small_white_sticker or is_blue_sticker:
+                sticker_mask[blob] = 255
+
+    # Branch 3: Direct / transparent printed barcode (periodic alternating parallel stripes on fruit skin)
+    inner_strict = cv2.erode(fmask.astype(np.uint8) * 255, np.ones((7, 7), np.uint8), iterations=1) > 0
+    inner_strict = inner_strict & border_ok
+    bar_v = cv2.boxFilter(np.maximum(gx_abs - 1.5 * gy_abs, 0.0), -1, (11, 11)) * inner_strict
+    bar_h = cv2.boxFilter(np.maximum(gy_abs - 1.5 * gx_abs, 0.0), -1, (11, 11)) * inner_strict
+    bar_score = np.maximum(bar_v, bar_h)
+
+    if float(bar_score.max()) >= 140.0:
+        gray_f = gray.astype(np.float32)
+        hp_x = gray_f - cv2.GaussianBlur(gray_f, (9, 1), 0)
+        hp_y = gray_f - cv2.GaussianBlur(gray_f, (1, 9), 0)
+        bseed = ((bar_score > 75.0) & inner_strict).astype(np.uint8) * 255
+        bseed = cv2.morphologyEx(bseed, cv2.MORPH_CLOSE, np.ones((7, 7), np.uint8), iterations=1)
+        b_cnts, _ = cv2.findContours(bseed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        for cnt in b_cnts:
+            area = cv2.contourArea(cnt)
+            if area < 0.0020 * img_area or area > 0.10 * img_area:
+                continue
+            x, y, bw, bh = cv2.boundingRect(cnt)
+            if bw < 8 or bh < 8 or float(bar_score[y : y + bh, x : x + bw].max()) < 140.0:
+                continue
+            is_vert = float(bar_v[y : y + bh, x : x + bw].mean()) >= float(bar_h[y : y + bh, x : x + bw].mean())
+            if is_vert:
+                profile = hp_x[y + bh // 4 : y + 3 * bh // 4, x : x + bw].mean(axis=0)
+            else:
+                profile = hp_y[y : y + bh, x + bw // 4 : x + 3 * bw // 4].mean(axis=1)
+            sig = np.where(np.abs(profile) > 10.0, np.sign(profile), 0.0)
+            nz = sig[sig != 0]
+            flips = int(np.sum(nz[1:] != nz[:-1])) if len(nz) >= 2 else 0
+            if flips >= 7:
+                cv2.drawContours(sticker_mask, [cnt], -1, 255, -1)
 
     if int(np.count_nonzero(sticker_mask)) == 0:
         return bgr, False
 
-    sticker_mask = cv2.dilate(sticker_mask, np.ones((7, 7), np.uint8), iterations=1)
-    cleaned = cv2.inpaint(bgr, sticker_mask, 6, cv2.INPAINT_TELEA)
+    sticker_mask = cv2.dilate(sticker_mask, np.ones((9, 9), np.uint8), iterations=1)
+    cleaned = cv2.inpaint(bgr, sticker_mask, 7, cv2.INPAINT_TELEA)
     return cleaned, True
 
 
@@ -372,4 +416,51 @@ def analyze_defects(bgr: np.ndarray) -> dict[str, object]:
         "jarak_warna": color_distance,
         "tekstur": texture,
         "mean_lab": mean_lab,
+    }
+
+
+def assess_image_quality(
+    bgr: np.ndarray,
+    mask: np.ndarray,
+    is_ood: bool = False,
+) -> dict[str, object]:
+    """Check basic capture quality (lighting, blur, fruit framing distance) for user guidance."""
+    gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
+    hsv = cv2.cvtColor(bgr, cv2.COLOR_BGR2HSV)
+    mask_bool = mask.astype(bool)
+    n_total = max(int(mask_bool.size), 1)
+    n_fruit = int(mask_bool.sum())
+    area_ratio = n_fruit / n_total
+
+    region_v = hsv[:, :, 2][mask_bool] if n_fruit >= 20 else hsv[:, :, 2].ravel()
+    region_s = hsv[:, :, 1][mask_bool] if n_fruit >= 20 else hsv[:, :, 1].ravel()
+    mean_v = float(region_v.mean())
+    glare_ratio = float(((region_v >= 248) & (region_s <= 22)).mean())
+
+    if mean_v < 42.0:
+        light = "dark"
+    elif mean_v > 245.0 or glare_ratio > 0.35:
+        light = "glare"
+    else:
+        light = "ok"
+
+    lap_var = float(cv2.Laplacian(gray, cv2.CV_64F).var())
+    focus = "blur" if lap_var < 25.0 else "ok"
+    distance = "far" if (not is_ood and area_ratio < 0.06) else "ok"
+
+    warnings: list[str] = []
+    if light == "dark":
+        warnings.append("Foto terlalu gelap; tambahkan pencahayaan agar warna kulit terbaca jelas.")
+    elif light == "glare":
+        warnings.append("Pantulan cahaya terlalu terang pada permukaan buah.")
+    if focus == "blur":
+        warnings.append("Foto tampak buram; tahan kamera tetap stabil dan fokuskan ke buah.")
+    if distance == "far":
+        warnings.append("Posisi buah terlalu jauh; dekatkan kamera agar buah memenuhi bingkai.")
+
+    return {
+        "light": light,
+        "focus": focus,
+        "distance": distance,
+        "warnings": warnings,
     }

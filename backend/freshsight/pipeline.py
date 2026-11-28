@@ -22,6 +22,7 @@ from .models import inference_lock, run_gradcam, state, tta_probabilities
 from .ood import evaluate_dual_ood
 from .vision import (
     analyze_defects,
+    assess_image_quality,
     detect_ood_and_candidates,
     find_fruit_crops,
     region_label,
@@ -103,10 +104,12 @@ def run_inference(pil_image: Image.Image) -> dict[str, object]:
     confidence = 0.0 if is_ood else float(probabilities[class_idx])
     fruit = label.split("_")[1]
     is_rotten = not label.startswith("fresh")
+    quality = assess_image_quality(analysis_bgr, features["mask"], is_ood=is_ood)
+    severe_quality_issue = quality["focus"] == "blur" or quality["light"] == "dark"
 
     if is_ood:
         verdict = "tidak_terdeteksi"
-    elif full_fruit_count > 1 or confidence < CONFIDENCE_RAGU_THRESHOLD:
+    elif full_fruit_count > 1 or confidence < CONFIDENCE_RAGU_THRESHOLD or (severe_quality_issue and confidence < 0.80):
         verdict = "ragu"
     else:
         verdict = "busuk" if is_rotten else "segar"
@@ -128,6 +131,7 @@ def run_inference(pil_image: Image.Image) -> dict[str, object]:
         human_region(focus),
         is_ood=is_ood,
         ood_reason=ood_reason,
+        quality=quality,
     )
     gradcam = overlay_heatmap(analysis_rgb01, heat)
     preview = defect_overlay(analysis_rgb01, features["defect"])
@@ -140,6 +144,7 @@ def run_inference(pil_image: Image.Image) -> dict[str, object]:
         "is_ood": is_ood,
         "ood_reason": ood_reason,
         "ood_metrics": ood_metrics,
+        "quality": quality,
         "confidence": confidence,
         "probs": {name: (0.0 if is_ood else float(probabilities[index])) for index, name in enumerate(CLASSES)},
         "features": {

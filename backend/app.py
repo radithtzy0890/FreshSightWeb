@@ -48,6 +48,7 @@ from freshsight.pipeline import run_inference
 from freshsight.rate_limit import check_rate_limit
 from freshsight.vision import (
     analyze_defects,
+    assess_image_quality,
     box_iou,
     defect_mask,
     detect_ood_and_candidates,
@@ -92,6 +93,7 @@ __all__ = [
     "defect_mask",
     "region_label",
     "analyze_defects",
+    "assess_image_quality",
     "human_region",
     "format_number",
     "overlay_heatmap",
